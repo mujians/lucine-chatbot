@@ -15,7 +15,7 @@ Sistema di customer support intelligente con AI (GPT-4) + supporto umano per e-c
 - Dashboard: PARZIALE (solo chat funzionanti, mancano ticket/knowledge/settings)
 - Widget: DA ADATTARE (API incompatibili con nuovo backend)
 
-**Priorità Immediate:**
+**Prioritï¿½ Immediate:**
 1. Adattare widget alle nuove API backend
 2. Implementare Tickets nella dashboard
 3. Test integrazione end-to-end
@@ -96,7 +96,7 @@ GET    /api/operators/online               # Operatori online (protected)
 POST   /api/operators                      # Crea operatore (admin)
 PUT    /api/operators/:id                  # Modifica operatore (admin)
 DELETE /api/operators/:id                  # Elimina operatore (admin)
-POST   /api/operators/me/toggle-availability # Toggle disponibilità (protected)
+POST   /api/operators/me/toggle-availability # Toggle disponibilitï¿½ (protected)
 PUT    /api/operators/me/notification-preferences # Preferenze notifiche (protected)
 ```
 
@@ -111,14 +111,14 @@ DELETE /api/settings/:key         # Elimina setting (protected)
 
 ### WebSocket Events IMPLEMENTATI
 
-#### Client ’ Server (Widget)
+#### Client ï¿½ Server (Widget)
 ```javascript
 join_chat(sessionId)              # User entra in chat
 user_message({ sessionId, message }) # User invia messaggio
 request_operator({ sessionId })   # User chiede operatore
 ```
 
-#### Client ’ Server (Dashboard)
+#### Client ï¿½ Server (Dashboard)
 ```javascript
 join_dashboard(operatorId)        # Operatore si connette
 join_chat_as_operator({ sessionId, operatorId }) # Operatore entra in chat
@@ -126,7 +126,7 @@ operator_message({ sessionId, message, operatorId }) # Operatore risponde
 close_chat({ sessionId, operatorId }) # Operatore chiude chat
 ```
 
-#### Server ’ Client
+#### Server ï¿½ Client
 ```javascript
 chat_joined({ sessionId })        # Conferma join chat
 message_sent({ message })         # Conferma messaggio inviato
@@ -155,17 +155,19 @@ user_message({ sessionId, userName, message }) # Messaggio da user (dashboard)
 
 #### Chat Timeout Monitor
 - Frequenza: ogni 60 secondi
-- Timeout: 10 minuti inattività
+- Timeout: 10 minuti inattivitï¿½
 - Azione: Crea ticket automatico
 
 #### Operator Disconnect Monitor
 - Frequenza: ogni 30 secondi
 - Timeout: 5 minuti disconnesso
-- Azione: Status ’ OFFLINE, ri-assegna chat
+- Azione: Status ï¿½ OFFLINE, ri-assegna chat
 
 ---
 
-## DASHBOARD - COMPLETEZZA 40%
+## DASHBOARD - COMPLETEZZA 65%
+
+**Ultimo aggiornamento:** 21 Ottobre 2025 (Fase 1+2 completate)
 
 ### IMPLEMENTATO
 
@@ -185,28 +187,43 @@ user_message({ sessionId, userName, message }) # Messaggio da user (dashboard)
 - [x] Chiusura chat
 - [x] Indicatore connessione WebSocket
 
-#### Layout
+#### Tickets (NUOVO - Fase 2)
+- [x] Pagina /tickets con routing
+- [x] Lista ticket con card layout
+- [x] Filtri status e priority (Select)
+- [x] Visualizzazione metadati (contatto, operatore, data)
+- [x] StatusBadge e PriorityBadge
+- [x] EmptyState component
+- [x] Custom hook useTickets per data fetching
+- [ ] Assegnazione ticket (UI pronta, logica da implementare)
+- [ ] Chiusura ticket con note (UI pronta, logica da implementare)
+- [ ] Dettaglio ticket con conversazione (da implementare)
+- [ ] Notifiche nuovi ticket WebSocket (da implementare)
+
+#### Layout & Navigation
 - [x] TopBar (logo, operator name, logout)
-- [x] Sidebar (navigation menu)
+- [x] Sidebar navigabile (Chat, Tickets, Analytics, Settings)
+- [x] Active state su routing
 - [x] ChatListPanel (lista chat)
 - [x] ChatWindow (conversazione)
 
-#### UI Components
-- [x] Shadcn UI installato
+#### Componenti Shared (NUOVO - Fase 1)
+- [x] EmptyState: stato vuoto riutilizzabile
+- [x] StatusBadge: badge status (chat + ticket)
+- [x] PriorityBadge: badge prioritÃ  con colori
+- [x] PageHeader: header pagina consistente
+- [x] Badge component (Shadcn)
+- [x] Select component (Shadcn + Radix UI)
+
+#### Infrastructure
+- [x] API client centralizzato (lib/api.ts)
+- [x] Custom hooks pattern (useTickets)
+- [x] Types completi (Ticket, KnowledgeItem, Setting)
+- [x] Shadcn UI components (Button, Badge, Select, etc)
 - [x] Design system base (colori, typography)
-- [x] Loading states
-- [x] Error handling
+- [x] Loading states e error handling
 
 ### NON IMPLEMENTATO
-
-#### Tickets
-- [ ] Pagina /tickets
-- [ ] Lista ticket con filtri
-- [ ] Dettaglio ticket
-- [ ] Assegnazione ticket
-- [ ] Chiusura ticket con note
-- [ ] Conversazione ticket
-- [ ] Notifiche nuovi ticket
 
 #### Knowledge Base
 - [ ] Pagina /knowledge
@@ -236,7 +253,7 @@ user_message({ sessionId, userName, message }) # Messaggio da user (dashboard)
 - [ ] Pagina /profile
 - [ ] Modifica profilo operatore
 - [ ] Preferenze notifiche
-- [ ] Toggle disponibilità
+- [ ] Toggle disponibilitï¿½
 
 #### Analytics (Future)
 - [ ] Dashboard analytics
@@ -280,7 +297,7 @@ POST /api/chat/session/:id/message  // Invia messaggio
    - Modificare `CORS_ORIGINS` su Render
 
 3. Test integrazione:
-   - Widget ’ Backend ’ Dashboard
+   - Widget ï¿½ Backend ï¿½ Dashboard
    - Flusso chat completo
    - Handoff operatore
    - Creazione ticket
@@ -442,17 +459,17 @@ VITE_API_URL=https://chatbot-lucy-2025.onrender.com/api
    - Necessaria riscrittura logica chiamate
    - CORS manca `https://lucinedinatale.it`
 
-### ALTA PRIORITÀ
+### ALTA PRIORITï¿½
 
 2. **Tickets mancanti in dashboard**
    - Nessuna UI per gestire ticket
    - Backend pronto ma non utilizzabile
 
 3. **Knowledge Base mancante**
-   - Admin non può gestire documenti
+   - Admin non puï¿½ gestire documenti
    - AI usa knowledge base ma non editabile
 
-### MEDIA PRIORITÀ
+### MEDIA PRIORITï¿½
 
 4. **Settings non configurabili**
    - Parametri AI fissi in codice
@@ -462,7 +479,7 @@ VITE_API_URL=https://chatbot-lucy-2025.onrender.com/api
    - Solo 1 admin hardcoded
    - Non si possono creare nuovi operatori
 
-### BASSA PRIORITÀ
+### BASSA PRIORITï¿½
 
 6. **Analytics assenti**
    - Nessuna metrica visibile
