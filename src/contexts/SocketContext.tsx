@@ -19,7 +19,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     if (!operator) return;
 
     // Remove /api from URL for WebSocket connection
-    const WS_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+    const WS_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://chatbot-lucy-2025.onrender.com';
 
     console.log('🔌 Connecting to WebSocket:', WS_URL);
     const newSocket = io(WS_URL);

@@ -9,7 +9,7 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ChatSession } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-lucy-2025.onrender.com/api';
 
 export default function Index() {
   const [chats, setChats] = useState<ChatSession[]>([]);
