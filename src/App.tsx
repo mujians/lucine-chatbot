@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
+import Tickets from '@/pages/Tickets';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { operator, loading } = useAuth();
@@ -36,6 +37,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Index />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tickets"
+        element={
+          <ProtectedRoute>
+            <Tickets />
           </ProtectedRoute>
         }
       />

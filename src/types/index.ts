@@ -63,3 +63,92 @@ export interface User {
   metadata?: Record<string, any>;
   createdAt: Date;
 }
+
+// ============================================
+// TICKETS
+// ============================================
+
+export const TicketStatus = {
+  PENDING: 'PENDING',
+  OPEN: 'OPEN',
+  ASSIGNED: 'ASSIGNED',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
+} as const;
+
+export type TicketStatus = typeof TicketStatus[keyof typeof TicketStatus];
+
+export const TicketPriority = {
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
+} as const;
+
+export type TicketPriority = typeof TicketPriority[keyof typeof TicketPriority];
+
+export const ContactMethod = {
+  WHATSAPP: 'WHATSAPP',
+  EMAIL: 'EMAIL',
+} as const;
+
+export type ContactMethod = typeof ContactMethod[keyof typeof ContactMethod];
+
+export interface Ticket {
+  id: string;
+  userName: string;
+  contactMethod: ContactMethod;
+  whatsappNumber?: string;
+  email?: string;
+  initialMessage: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  operatorId?: string;
+  operator?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  assignedAt?: string;
+  resolutionNotes?: string;
+  resolvedAt?: string;
+  resumeToken: string;
+  resumeTokenExpiresAt: string;
+  sessionId: string;
+  session?: ChatSession;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================
+// KNOWLEDGE BASE
+// ============================================
+
+export interface KnowledgeItem {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string;
+  isActive: boolean;
+  createdById: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================
+// SETTINGS
+// ============================================
+
+export interface Setting {
+  id: string;
+  key: string;
+  value: any;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}

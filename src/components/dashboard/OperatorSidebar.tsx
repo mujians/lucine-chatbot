@@ -1,35 +1,45 @@
-import { MessageSquare, Settings, BarChart3 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { MessageSquare, Ticket, Settings, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarItem {
-  icon: React.ReactNode;
+  icon: React.ElementType;
   label: string;
-  active?: boolean;
+  href: string;
 }
 
 const sidebarItems: SidebarItem[] = [
-  { icon: <MessageSquare className="h-5 w-5" />, label: 'Chat', active: true },
-  { icon: <BarChart3 className="h-5 w-5" />, label: 'Statistiche' },
-  { icon: <Settings className="h-5 w-5" />, label: 'Impostazioni' },
+  { icon: MessageSquare, label: 'Chat', href: '/' },
+  { icon: Ticket, label: 'Tickets', href: '/tickets' },
+  { icon: BarChart3, label: 'Statistiche', href: '/analytics' },
+  { icon: Settings, label: 'Impostazioni', href: '/settings' },
 ];
 
 export function OperatorSidebar() {
+  const location = useLocation();
+
   return (
     <aside className="w-16 border-r bg-card flex flex-col items-center py-4 gap-4">
-      {sidebarItems.map((item, index) => (
-        <button
-          key={index}
-          className={cn(
-            "w-12 h-12 rounded-lg flex items-center justify-center transition-colors",
-            item.active
-              ? "bg-primary text-primary-foreground"
-              : "hover:bg-accent text-muted-foreground hover:text-accent-foreground"
-          )}
-          title={item.label}
-        >
-          {item.icon}
-        </button>
-      ))}
+      {sidebarItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = location.pathname === item.href;
+
+        return (
+          <Link
+            key={item.href}
+            to={item.href}
+            className={cn(
+              "w-12 h-12 rounded-lg flex items-center justify-center transition-colors",
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent text-muted-foreground hover:text-accent-foreground"
+            )}
+            title={item.label}
+          >
+            <Icon className="h-5 w-5" />
+          </Link>
+        );
+      })}
     </aside>
   );
 }
