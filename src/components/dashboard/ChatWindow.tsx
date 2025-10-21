@@ -70,15 +70,15 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat }: ChatWin
               key={msg.id}
               className={cn(
                 "flex",
-                msg.sender === 'operator' ? 'justify-end' : 'justify-start'
+                msg.type === 'operator' ? 'justify-end' : 'justify-start'
               )}
             >
               <div
                 className={cn(
                   "max-w-[70%] rounded-lg p-3",
-                  msg.sender === 'operator'
+                  msg.type === 'operator'
                     ? 'bg-primary text-primary-foreground'
-                    : msg.sender === 'ai'
+                    : msg.type === 'ai'
                     ? 'bg-blue-100 text-blue-900'
                     : 'bg-muted'
                 )}
@@ -86,7 +86,7 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat }: ChatWin
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 <p className={cn(
                   "text-xs mt-1",
-                  msg.sender === 'operator' ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                  msg.type === 'operator' ? 'text-primary-foreground/70' : 'text-muted-foreground'
                 )}>
                   {format(new Date(msg.timestamp), 'HH:mm', { locale: it })}
                 </p>

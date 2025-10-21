@@ -2,45 +2,59 @@ export const ChatStatus = {
   WAITING: 'WAITING',
   ACTIVE: 'ACTIVE',
   WITH_OPERATOR: 'WITH_OPERATOR',
-  CLOSED: 'CLOSED'
+  CLOSED: 'CLOSED',
+  TICKET_CREATED: 'TICKET_CREATED',  // Backend has this
 } as const;
 
 export type ChatStatus = typeof ChatStatus[keyof typeof ChatStatus];
 
 export interface ChatMessage {
   id: string;
-  chatSessionId: string;
-  sender: 'user' | 'ai' | 'operator';
+  type: 'user' | 'ai' | 'operator' | 'system';  // Backend uses 'type', not 'sender'
   content: string;
-  timestamp: Date;
-  metadata?: Record<string, any>;
+  timestamp: string;  // Backend sends ISO string
+  operatorName?: string;
+  confidence?: number;
+  suggestOperator?: boolean;
 }
 
 export interface ChatSession {
   id: string;
-  userId: string;
+  userName: string | null;  // Backend has userName, not userId
+  userAgent?: string;
+  ipAddress?: string;
   status: ChatStatus;
-  currentOperatorId?: string;
-  priority: number;
-  createdAt: Date;
-  updatedAt: Date;
-  closedAt?: Date;
-  lastMessage?: ChatMessage;
-  messages?: ChatMessage[];
-  metadata?: {
-    userAgent?: string;
-    ipAddress?: string;
-    referrer?: string;
+  messages: ChatMessage[];  // Will be parsed from JSON string
+  operatorId?: string;  // Backend has operatorId, not currentOperatorId
+  operator?: {
+    id: string;
+    name: string;
+    email: string;
   };
+  aiConfidence?: number;
+  aiTokensUsed?: number;
+  operatorJoinedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string;
+  closedAt?: string;
+  lastMessage?: ChatMessage;  // Computed field for UI
 }
 
 export interface Operator {
   id: string;
   name: string;
   email: string;
-  isAvailable: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  role: 'OPERATOR' | 'ADMIN';  // Backend has role
+  isOnline: boolean;  // Backend has isOnline, not isAvailable
+  whatsappNumber?: string;
+  notificationPreferences?: any;
+  totalChatsHandled?: number;
+  totalTicketsHandled?: number;
+  averageRating?: number;
+  createdAt: string;
+  updatedAt: string;
+  lastSeenAt?: string;
 }
 
 export interface User {

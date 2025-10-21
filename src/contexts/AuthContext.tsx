@@ -35,8 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchOperatorProfile = async () => {
     try {
-      const response = await axios.get(`${API_URL}/operators/me`);
-      setOperator(response.data);
+      const response = await axios.get(`${API_URL}/auth/me`);
+      // Backend returns { success: true, data: operator }
+      setOperator(response.data.data);
     } catch (error) {
       console.error('Failed to fetch operator profile:', error);
       localStorage.removeItem('token');
@@ -47,12 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post(`${API_URL}/operators/login`, {
+    const response = await axios.post(`${API_URL}/auth/login`, {
       email,
       password,
     });
 
-    const { token, operator: operatorData } = response.data;
+    // Backend returns { success: true, data: { token, operator } }
+    const { token, operator: operatorData } = response.data.data;
     localStorage.setItem('token', token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setOperator(operatorData);
