@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Search, X, Archive, Flag } from 'lucide-react';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { chatApi } from '@/lib/api';
 import type { ChatSession } from '@/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-lucy-2025.onrender.com/api';
@@ -173,6 +174,51 @@ export default function Index() {
     setSelectedChat(null);
   };
 
+  const handleDeleteChat = async (chat: ChatSession) => {
+    if (!confirm(`Eliminare definitivamente la chat #${chat.id.slice(0, 8)}?`)) return;
+
+    try {
+      await chatApi.deleteSession(chat.id);
+      loadChats();
+      if (selectedChat?.id === chat.id) {
+        setSelectedChat(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      alert('Errore durante l\'eliminazione della chat');
+    }
+  };
+
+  const handleArchiveChat = async (chat: ChatSession) => {
+    try {
+      if (chat.isArchived) {
+        await chatApi.unarchiveSession(chat.id);
+      } else {
+        await chatApi.archiveSession(chat.id);
+      }
+      loadChats();
+    } catch (error) {
+      console.error('Failed to archive/unarchive chat:', error);
+      alert('Errore durante l\'archiviazione della chat');
+    }
+  };
+
+  const handleFlagChat = async (chat: ChatSession) => {
+    try {
+      if (chat.isFlagged) {
+        await chatApi.unflagSession(chat.id);
+      } else {
+        const reason = prompt('Motivo della segnalazione:');
+        if (!reason) return;
+        await chatApi.flagSession(chat.id, reason);
+      }
+      loadChats();
+    } catch (error) {
+      console.error('Failed to flag/unflag chat:', error);
+      alert('Errore durante la segnalazione della chat');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -248,6 +294,9 @@ export default function Index() {
             chats={chats}
             selectedChatId={selectedChat?.id}
             onSelectChat={handleSelectChat}
+            onDeleteChat={handleDeleteChat}
+            onArchiveChat={handleArchiveChat}
+            onFlagChat={handleFlagChat}
           />
         </div>
 
