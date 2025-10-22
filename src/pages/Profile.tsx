@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,13 +43,14 @@ export default function Profile() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <PageHeader
-        title="Il Mio Profilo"
-        description="Visualizza e modifica il tuo profilo operatore"
-      />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="Il Mio Profilo"
+          description="Visualizza e modifica il tuo profilo operatore"
+        />
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="space-y-6">
         {success && (
           <div className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-md p-3">
             Modifiche salvate con successo!
@@ -149,7 +151,8 @@ export default function Profile() {
             {format(new Date(operator.lastSeenAt), 'dd MMMM yyyy HH:mm', { locale: it })}
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

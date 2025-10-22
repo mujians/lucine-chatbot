@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -152,26 +153,29 @@ export default function CannedResponses() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-muted-foreground">Caricamento risposte rapide...</p>
-      </div>
+      <DashboardLayout>
+        <div className="h-full flex items-center justify-center">
+          <p className="text-muted-foreground">Caricamento risposte rapide...</p>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <PageHeader
-        title="Risposte Rapide"
-        description="Gestisci le risposte predefinite per velocizzare il supporto"
-        action={
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuova Risposta
-          </Button>
-        }
-      />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="Risposte Rapide"
+          description="Gestisci le risposte predefinite per velocizzare il supporto"
+          action={
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuova Risposta
+            </Button>
+          }
+        />
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-card border rounded-lg p-4">
@@ -269,10 +273,10 @@ export default function CannedResponses() {
             ))}
           </div>
         )}
-      </div>
+        </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        {/* Create/Edit Dialog */}
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -349,6 +353,7 @@ export default function CannedResponses() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

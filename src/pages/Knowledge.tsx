@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KnowledgeList } from '@/components/knowledge/KnowledgeList';
 import { KnowledgeForm } from '@/components/knowledge/KnowledgeForm';
@@ -56,31 +57,31 @@ export default function Knowledge() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <PageHeader
-        title="Knowledge Base"
-        description="Gestisci i documenti della knowledge base per l'AI"
-        action={
-          <div className="flex gap-2">
-            <Button
-              onClick={handleRegenerateEmbeddings}
-              variant="outline"
-              disabled={regenerating}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
-              {regenerating ? 'Rigenerando...' : 'Rigenera Embeddings'}
-            </Button>
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuovo Documento
-            </Button>
-          </div>
-        }
-      />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="Knowledge Base"
+          description="Gestisci i documenti della knowledge base per l'AI"
+          action={
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRegenerateEmbeddings}
+                variant="outline"
+                disabled={regenerating}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
+                {regenerating ? 'Rigenerando...' : 'Rigenera Embeddings'}
+              </Button>
+              <Button onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nuovo Documento
+              </Button>
+            </div>
+          }
+        />
 
-      <div className="flex-1 overflow-auto p-6">
         {error && (
-          <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3 mb-4">
+          <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3">
             Errore durante il caricamento dei documenti: {error.message}
           </div>
         )}
@@ -95,13 +96,13 @@ export default function Knowledge() {
           isActiveFilter={isActive}
           onIsActiveFilterChange={setIsActive}
         />
-      </div>
 
-      <KnowledgeForm
-        open={formOpen}
-        item={editingItem}
-        onClose={handleFormClose}
-      />
-    </div>
+        <KnowledgeForm
+          open={formOpen}
+          item={editingItem}
+          onClose={handleFormClose}
+        />
+      </div>
+    </DashboardLayout>
   );
 }

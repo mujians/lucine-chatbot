@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Ticket, Users, TrendingUp, Clock, CheckCircle } from 'lucide-react';
@@ -30,28 +31,33 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-muted-foreground">Caricamento statistiche...</p>
-      </div>
+      <DashboardLayout>
+        <div className="h-full flex items-center justify-center">
+          <p className="text-muted-foreground">Caricamento statistiche...</p>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-destructive">{error || 'Errore nel caricamento'}</p>
-      </div>
+      <DashboardLayout>
+        <div className="h-full flex items-center justify-center">
+          <p className="text-destructive">{error || 'Errore nel caricamento'}</p>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <PageHeader
-        title="Analytics"
-        description="Panoramica delle prestazioni e statistiche del sistema"
-      />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="Analytics"
+          description="Panoramica delle prestazioni e statistiche del sistema"
+        />
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="space-y-6">
         {/* Chat Statistics */}
         <div>
           <h2 className="text-lg font-semibold mb-4">Chat</h2>
@@ -300,7 +306,8 @@ export default function Analytics() {
             </Card>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { settingsApi } from '@/lib/api';
@@ -111,26 +112,29 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <PageHeader
-        title="Impostazioni"
-        description="Configura le impostazioni del sistema"
-        action={
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Salvo...' : 'Salva Modifiche'}
-          </Button>
-        }
-      />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="Impostazioni"
+          description="Configura le impostazioni del sistema"
+          action={
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? 'Salvo...' : 'Salva Modifiche'}
+            </Button>
+          }
+        />
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="space-y-6">
         {error && (
           <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3">
             {error}
@@ -287,7 +291,8 @@ export default function Settings() {
             },
           ]}
         />
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

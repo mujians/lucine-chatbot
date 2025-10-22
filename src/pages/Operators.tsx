@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { OperatorsList } from '@/components/operators/OperatorsList';
 import { OperatorForm } from '@/components/operators/OperatorForm';
@@ -62,36 +63,38 @@ export default function Operators() {
 
   if (!isAdmin) {
     return (
-      <div className="h-full flex flex-col">
-        <PageHeader title="Operatori" description="Lista operatori del sistema" />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h3 className="text-lg font-medium mb-2">Accesso Negato</h3>
-            <p className="text-sm text-muted-foreground">
-              Solo gli amministratori possono accedere a questa sezione.
-            </p>
+      <DashboardLayout>
+        <div className="p-6 space-y-6">
+          <PageHeader title="Operatori" description="Lista operatori del sistema" />
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <h3 className="text-lg font-medium mb-2">Accesso Negato</h3>
+              <p className="text-sm text-muted-foreground">
+                Solo gli amministratori possono accedere a questa sezione.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <PageHeader
-        title="Operatori"
-        description="Gestisci gli operatori del sistema"
-        action={
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuovo Operatore
-          </Button>
-        }
-      />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="Operatori"
+          description="Gestisci gli operatori del sistema"
+          action={
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuovo Operatore
+            </Button>
+          }
+        />
 
-      <div className="flex-1 overflow-auto p-6">
         {error && (
-          <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3 mb-4">
+          <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3">
             {error}
           </div>
         )}
@@ -102,9 +105,9 @@ export default function Operators() {
           onEdit={handleEdit}
           onUpdate={fetchOperators}
         />
-      </div>
 
-      <OperatorForm open={formOpen} operator={editingOperator} onClose={handleFormClose} />
-    </div>
+        <OperatorForm open={formOpen} operator={editingOperator} onClose={handleFormClose} />
+      </div>
+    </DashboardLayout>
   );
 }
