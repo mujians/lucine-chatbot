@@ -34,6 +34,14 @@ export interface ChatSession {
   aiConfidence?: number;
   aiTokensUsed?: number;
   operatorJoinedAt?: string;
+  isArchived: boolean;
+  archivedAt?: string;
+  archivedBy?: string;
+  isFlagged: boolean;
+  flagReason?: string;
+  flaggedBy?: string;
+  flaggedAt?: string;
+  deletedAt?: string;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string;

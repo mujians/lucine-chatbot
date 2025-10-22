@@ -159,7 +159,16 @@ export const settingsApi = {
 // ============================================
 
 export const chatApi = {
-  getSessions: (params?: { status?: string; operatorId?: string }) =>
+  getSessions: (params?: {
+    status?: string;
+    operatorId?: string;
+    search?: string;
+    isArchived?: boolean;
+    isFlagged?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
+  }) =>
     api.get('/chat/sessions', { params }).then(res => res.data),
 
   getSession: (id: string) =>
@@ -167,6 +176,21 @@ export const chatApi = {
 
   closeSession: (id: string) =>
     api.post(`/chat/sessions/${id}/close`).then(res => res.data),
+
+  deleteSession: (id: string) =>
+    api.delete(`/chat/sessions/${id}`).then(res => res.data),
+
+  archiveSession: (id: string) =>
+    api.post(`/chat/sessions/${id}/archive`).then(res => res.data),
+
+  unarchiveSession: (id: string) =>
+    api.post(`/chat/sessions/${id}/unarchive`).then(res => res.data),
+
+  flagSession: (id: string, reason?: string) =>
+    api.post(`/chat/sessions/${id}/flag`, { reason }).then(res => res.data),
+
+  unflagSession: (id: string) =>
+    api.post(`/chat/sessions/${id}/unflag`).then(res => res.data),
 
   convertToTicket: (id: string) =>
     api.post(`/chat/sessions/${id}/convert-to-ticket`).then(res => res.data),

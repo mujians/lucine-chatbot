@@ -59,19 +59,13 @@ const getStatusLabel = (status: ChatStatus) => {
 
 export function ChatListPanel({ chats = [], selectedChatId, onSelectChat }: ChatListPanelProps) {
   return (
-    <div className="w-80 border-r bg-card flex flex-col">
-      <div className="p-4 border-b">
-        <h2 className="font-semibold text-lg">Conversazioni</h2>
-        <p className="text-sm text-muted-foreground">{chats.length} chat attive</p>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div className="p-2">
-          {chats.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">Nessuna chat attiva</p>
-            </div>
-          ) : (
+    <ScrollArea className="flex-1">
+      <div className="p-2">
+        {chats.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">Nessuna chat attiva</p>
+          </div>
+        ) : (
             chats.map((chat) => (
               <button
                 key={chat.id}
@@ -107,6 +101,5 @@ export function ChatListPanel({ chats = [], selectedChatId, onSelectChat }: Chat
           )}
         </div>
       </ScrollArea>
-    </div>
   );
 }

@@ -5,6 +5,9 @@ import { TopBar } from '@/components/dashboard/TopBar';
 import { OperatorSidebar } from '@/components/dashboard/OperatorSidebar';
 import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search, X, Archive, Flag, Filter } from 'lucide-react';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ChatSession } from '@/types';
@@ -15,6 +18,9 @@ export default function Index() {
   const [chats, setChats] = useState<ChatSession[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
 
   const { socket, connected } = useSocket();
   const { operator, logout } = useAuth();
@@ -23,7 +29,7 @@ export default function Index() {
   // Load initial chats
   useEffect(() => {
     loadChats();
-  }, []);
+  }, [searchQuery, showArchived, showOnlyFlagged]);
 
   // Listen to WebSocket events
   useEffect(() => {
@@ -68,7 +74,12 @@ export default function Index() {
 
   const loadChats = async () => {
     try {
-      const response = await axios.get(`${API_URL}/chat/sessions`);
+      const params: any = {};
+      if (searchQuery) params.search = searchQuery;
+      if (showArchived) params.isArchived = true;
+      if (showOnlyFlagged) params.isFlagged = true;
+
+      const response = await axios.get(`${API_URL}/chat/sessions`, { params });
 
       // Backend returns { success: true, data: sessions }
       const sessionsData = response.data.data || response.data;
@@ -183,11 +194,63 @@ export default function Index() {
       />
       <div className="flex flex-1 overflow-hidden">
         <OperatorSidebar />
-        <ChatListPanel
-          chats={chats}
-          selectedChatId={selectedChat?.id}
-          onSelectChat={handleSelectChat}
-        />
+
+        {/* Search & Filters Panel */}
+        <div className="w-80 border-r bg-card flex flex-col">
+          <div className="p-4 border-b space-y-3">
+            <h2 className="font-semibold text-lg">Conversazioni</h2>
+
+            {/* Search bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cerca chat..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter buttons */}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={showArchived ? 'default' : 'outline'}
+                onClick={() => setShowArchived(!showArchived)}
+                className="flex-1"
+              >
+                <Archive className="h-4 w-4 mr-1" />
+                Archiviate
+              </Button>
+              <Button
+                size="sm"
+                variant={showOnlyFlagged ? 'default' : 'outline'}
+                onClick={() => setShowOnlyFlagged(!showOnlyFlagged)}
+                className="flex-1"
+              >
+                <Flag className="h-4 w-4 mr-1" />
+                Segnalate
+              </Button>
+            </div>
+
+            <p className="text-sm text-muted-foreground">{chats.length} chat</p>
+          </div>
+
+          <ChatListPanel
+            chats={chats}
+            selectedChatId={selectedChat?.id}
+            onSelectChat={handleSelectChat}
+          />
+        </div>
+
         <ChatWindow
           selectedChat={selectedChat}
           onSendMessage={handleSendMessage}
