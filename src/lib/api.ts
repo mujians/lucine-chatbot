@@ -123,8 +123,8 @@ export const operatorsApi = {
   delete: (id: string) =>
     api.delete(`/operators/${id}`).then(res => res.data),
 
-  toggleAvailability: (isOnline: boolean) =>
-    api.post('/operators/me/toggle-availability', { isOnline }).then(res => res.data),
+  toggleAvailability: (isAvailable: boolean) =>
+    api.post('/operators/me/toggle-availability', { isAvailable }).then(res => res.data),
 
   updateNotificationPreferences: (preferences: any) =>
     api.put('/operators/me/notification-preferences', { preferences }).then(res => res.data),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +10,16 @@ import { it } from 'date-fns/locale';
 
 export default function Profile() {
   const { operator } = useAuth();
-  const [isAvailable, setIsAvailable] = useState(true);
+  const [isAvailable, setIsAvailable] = useState(operator?.isAvailable || false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Sync isAvailable with operator from backend
+  useEffect(() => {
+    if (operator) {
+      setIsAvailable(operator.isAvailable || false);
+    }
+  }, [operator]);
 
   if (!operator) {
     return null;

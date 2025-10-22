@@ -45,8 +45,9 @@ export interface Operator {
   id: string;
   name: string;
   email: string;
-  role: 'OPERATOR' | 'ADMIN';  // Backend has role
-  isOnline: boolean;  // Backend has isOnline, not isAvailable
+  role: 'OPERATOR' | 'ADMIN';
+  isOnline: boolean;       // Connected to dashboard
+  isAvailable: boolean;    // Available to receive new chats
   whatsappNumber?: string;
   notificationPreferences?: any;
   totalChatsHandled?: number;
