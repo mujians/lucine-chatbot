@@ -1,12 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import type { Operator } from '@/types';
 import axios from 'axios';
-
-interface Operator {
-  id: string;
-  name: string;
-  email: string;
-}
 
 interface AuthContextType {
   operator: Operator | null;

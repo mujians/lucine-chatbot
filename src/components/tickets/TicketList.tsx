@@ -3,10 +3,22 @@ import type { Ticket } from '@/types';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PriorityBadge } from '@/components/shared/PriorityBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { TicketDetail } from './TicketDetail';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { Ticket as TicketIcon, Mail, MessageSquare, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { ticketsApi } from '@/lib/api';
 
 interface TicketListProps {
   tickets: Ticket[];
@@ -14,8 +26,58 @@ interface TicketListProps {
   onUpdate: () => void;
 }
 
-export function TicketList({ tickets, loading }: TicketListProps) {
-  const [, setSelectedTicket] = useState<Ticket | null>(null);
+export function TicketList({ tickets, loading, onUpdate }: TicketListProps) {
+  const { operator } = useAuth();
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolvingTicket, setResolvingTicket] = useState<Ticket | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleAssign = async (ticketId: string) => {
+    if (!operator) return;
+
+    try {
+      setSubmitting(true);
+      await ticketsApi.assign(ticketId, operator.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to assign ticket:', error);
+      alert('Errore durante l\'assegnazione del ticket');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResolveClick = (ticket: Ticket) => {
+    setResolvingTicket(ticket);
+    setResolutionNotes('');
+    setResolveDialogOpen(true);
+  };
+
+  const handleResolveSubmit = async () => {
+    if (!resolvingTicket || !resolutionNotes.trim()) return;
+
+    try {
+      setSubmitting(true);
+      await ticketsApi.resolve(resolvingTicket.id, resolutionNotes);
+      setResolveDialogOpen(false);
+      setResolvingTicket(null);
+      setResolutionNotes('');
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to resolve ticket:', error);
+      alert('Errore durante la risoluzione del ticket');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleTicketClick = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setDetailOpen(true);
+  };
 
   if (loading) {
     return (
@@ -41,7 +103,7 @@ export function TicketList({ tickets, loading }: TicketListProps) {
         <div
           key={ticket.id}
           className="bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer"
-          onClick={() => setSelectedTicket(ticket)}
+          onClick={() => handleTicketClick(ticket)}
         >
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -84,12 +146,28 @@ export function TicketList({ tickets, loading }: TicketListProps) {
           {(ticket.status === 'PENDING' || ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (
             <div className="mt-3 flex items-center gap-2">
               {!ticket.operatorId && (
-                <Button size="sm" variant="outline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAssign(ticket.id);
+                  }}
+                  disabled={submitting}
+                >
                   Assegna a me
                 </Button>
               )}
               {ticket.operatorId && (
-                <Button size="sm" variant="outline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResolveClick(ticket);
+                  }}
+                  disabled={submitting}
+                >
                   Risolvi ticket
                 </Button>
               )}
@@ -97,6 +175,46 @@ export function TicketList({ tickets, loading }: TicketListProps) {
           )}
         </div>
       ))}
+
+      <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Risolvi Ticket</DialogTitle>
+            <DialogDescription>
+              Inserisci le note di risoluzione per il ticket di {resolvingTicket?.userName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Descrivi come hai risolto il problema..."
+              value={resolutionNotes}
+              onChange={(e) => setResolutionNotes(e.target.value)}
+              rows={5}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setResolveDialogOpen(false)}
+              disabled={submitting}
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleResolveSubmit}
+              disabled={submitting || !resolutionNotes.trim()}
+            >
+              {submitting ? 'Risolvo...' : 'Risolvi Ticket'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <TicketDetail
+        ticket={selectedTicket}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }

@@ -4,6 +4,10 @@ import { SocketProvider } from '@/contexts/SocketContext';
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
 import Tickets from '@/pages/Tickets';
+import Knowledge from '@/pages/Knowledge';
+import Settings from '@/pages/Settings';
+import Operators from '@/pages/Operators';
+import Profile from '@/pages/Profile';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { operator, loading } = useAuth();
@@ -45,6 +49,38 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Tickets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/knowledge"
+        element={
+          <ProtectedRoute>
+            <Knowledge />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/operators"
+        element={
+          <ProtectedRoute>
+            <Operators />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />
