@@ -92,6 +92,9 @@ export const knowledgeApi = {
 
   bulkImport: (items: Array<{ question: string; answer: string; category?: string }>) =>
     api.post('/knowledge/bulk', { items }).then(res => res.data),
+
+  regenerateEmbeddings: () =>
+    api.post('/knowledge/regenerate-embeddings').then(res => res.data),
 };
 
 // ============================================

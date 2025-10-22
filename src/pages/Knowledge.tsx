@@ -3,8 +3,9 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { KnowledgeList } from '@/components/knowledge/KnowledgeList';
 import { KnowledgeForm } from '@/components/knowledge/KnowledgeForm';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useKnowledge } from '@/hooks/useKnowledge';
+import { knowledgeApi } from '@/lib/api';
 import type { KnowledgeItem } from '@/types';
 
 export default function Knowledge() {
@@ -12,6 +13,7 @@ export default function Knowledge() {
   const [editingItem, setEditingItem] = useState<KnowledgeItem | null>(null);
   const [category, setCategory] = useState<string>('');
   const [isActive, setIsActive] = useState<boolean | undefined>(undefined);
+  const [regenerating, setRegenerating] = useState(false);
 
   const { items, loading, error, refetch } = useKnowledge({ category, isActive });
 
@@ -31,16 +33,48 @@ export default function Knowledge() {
     refetch();
   };
 
+  const handleRegenerateEmbeddings = async () => {
+    if (!confirm('Rigenerare gli embeddings per tutti i documenti? Questa operazione potrebbe richiedere alcuni minuti.')) {
+      return;
+    }
+
+    try {
+      setRegenerating(true);
+      const response = await knowledgeApi.regenerateEmbeddings();
+
+      alert(
+        `Embeddings rigenerati con successo!\n\n` +
+        `Processati: ${response.data.processed}/${response.data.total}\n` +
+        `${response.data.errors > 0 ? `Errori: ${response.data.errors}` : ''}`
+      );
+    } catch (error) {
+      console.error('Failed to regenerate embeddings:', error);
+      alert('Errore durante la rigenerazione degli embeddings');
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <PageHeader
         title="Knowledge Base"
         description="Gestisci i documenti della knowledge base per l'AI"
         action={
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuovo Documento
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRegenerateEmbeddings}
+              variant="outline"
+              disabled={regenerating}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
+              {regenerating ? 'Rigenerando...' : 'Rigenera Embeddings'}
+            </Button>
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuovo Documento
+            </Button>
+          </div>
         }
       />
 
