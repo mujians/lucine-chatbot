@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { TopBar } from '@/components/dashboard/TopBar';
 import { OperatorSidebar } from '@/components/dashboard/OperatorSidebar';
 import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
@@ -12,8 +11,6 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/api';
 import type { ChatSession } from '@/types';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-lucy-2025.onrender.com/api';
 
 export default function Index() {
   const [chats, setChats] = useState<ChatSession[]>([]);
@@ -80,10 +77,10 @@ export default function Index() {
       if (showArchived) params.isArchived = true;
       if (showOnlyFlagged) params.isFlagged = true;
 
-      const response = await axios.get(`${API_URL}/chat/sessions`, { params });
+      const response = await chatApi.getSessions(params);
 
       // Backend returns { success: true, data: sessions }
-      const sessionsData = response.data.data || response.data;
+      const sessionsData = response.data || response;
 
       // Parse messages JSON string and add computed lastMessage
       const parsedChats = sessionsData.map((session: any) => {
