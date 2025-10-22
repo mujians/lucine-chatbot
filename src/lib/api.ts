@@ -194,4 +194,51 @@ export const chatApi = {
 
   convertToTicket: (id: string) =>
     api.post(`/chat/sessions/${id}/convert-to-ticket`).then(res => res.data),
+
+  transferSession: (id: string, data: { toOperatorId: string; reason?: string }) =>
+    api.post(`/chat/sessions/${id}/transfer`, data).then(res => res.data),
+};
+
+// ============================================
+// ANALYTICS API
+// ============================================
+
+export const analyticsApi = {
+  getDashboardStats: (params?: { dateFrom?: string; dateTo?: string }) =>
+    api.get('/analytics/dashboard', { params }).then(res => res.data),
+};
+
+// ============================================
+// CANNED RESPONSES API
+// ============================================
+
+export const cannedResponsesApi = {
+  getAll: () =>
+    api.get('/canned-responses').then(res => res.data),
+
+  getById: (id: string) =>
+    api.get(`/canned-responses/${id}`).then(res => res.data),
+
+  create: (data: {
+    title: string;
+    content: string;
+    shortcut?: string;
+    isGlobal?: boolean;
+  }) =>
+    api.post('/canned-responses', data).then(res => res.data),
+
+  update: (id: string, data: {
+    title?: string;
+    content?: string;
+    shortcut?: string;
+    isGlobal?: boolean;
+    isActive?: boolean;
+  }) =>
+    api.put(`/canned-responses/${id}`, data).then(res => res.data),
+
+  delete: (id: string) =>
+    api.delete(`/canned-responses/${id}`).then(res => res.data),
+
+  incrementUsage: (id: string) =>
+    api.post(`/canned-responses/${id}/use`).then(res => res.data),
 };

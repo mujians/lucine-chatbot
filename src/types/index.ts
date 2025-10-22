@@ -161,3 +161,67 @@ export interface Setting {
   createdAt: string;
   updatedAt: string;
 }
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+export interface DashboardStats {
+  chats: {
+    total: number;
+    active: number;
+    waiting: number;
+    withOperator: number;
+    closed: number;
+    archived: number;
+    flagged: number;
+  };
+  tickets: {
+    total: number;
+    pending: number;
+    open: number;
+    resolved: number;
+  };
+  operators: {
+    total: number;
+    online: number;
+    available: number;
+    topPerformers: Array<{
+      id: string;
+      name: string;
+      chatsHandled: number;
+      ticketsHandled: number;
+      averageRating?: number;
+    }>;
+  };
+  performance: {
+    avgResponseTimeMinutes: number | null;
+    avgResolutionTimeHours: number | null;
+  };
+  trends: {
+    chatsByHour: Array<{ hour: number; count: number }>;
+  };
+}
+
+// ============================================
+// CANNED RESPONSES
+// ============================================
+
+export interface CannedResponse {
+  id: string;
+  title: string;
+  content: string;
+  shortcut?: string;
+  isGlobal: boolean;
+  createdBy: string;
+  creator?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  timesUsed: number;
+  lastUsedAt?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

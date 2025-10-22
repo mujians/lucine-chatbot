@@ -304,6 +304,10 @@ export default function Index() {
           selectedChat={selectedChat}
           onSendMessage={handleSendMessage}
           onCloseChat={handleCloseChat}
+          onTransferComplete={() => {
+            loadChats();
+            setSelectedChat(null);
+          }}
         />
       </div>
 
