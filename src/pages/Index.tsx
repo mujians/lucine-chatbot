@@ -7,7 +7,7 @@ import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Archive, Flag, Filter } from 'lucide-react';
+import { Search, X, Archive, Flag } from 'lucide-react';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ChatSession } from '@/types';
