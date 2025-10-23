@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, ArrowRightLeft } from 'lucide-react';
+import { Send, X, ArrowRightLeft, Archive, Flag, XCircle } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,23 +24,44 @@ interface ChatWindowProps {
   onSendMessage?: (message: string) => void;
   onCloseChat?: () => void;
   onTransferComplete?: () => void;
+  onArchiveChat?: (chatId: string) => void;
+  onFlagChat?: (chatId: string, reason: string) => void;
+  onCloseChatSession?: (chatId: string) => void;
 }
 
-export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransferComplete }: ChatWindowProps) {
+export function ChatWindow({
+  selectedChat,
+  onSendMessage,
+  onCloseChat,
+  onTransferComplete,
+  onArchiveChat,
+  onFlagChat,
+  onCloseChatSession,
+}: ChatWindowProps) {
   const [message, setMessage] = useState('');
   const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showFlagDialog, setShowFlagDialog] = useState(false);
   const [operators, setOperators] = useState<Operator[]>([]);
   const [selectedOperatorId, setSelectedOperatorId] = useState('');
   const [transferReason, setTransferReason] = useState('');
+  const [flagReason, setFlagReason] = useState('');
   const [transferring, setTransferring] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { operator: currentOperator } = useAuth();
 
+  // Reset message input when chat changes
+  useEffect(() => {
+    setMessage('');
+    setFlagReason('');
+  }, [selectedChat?.id]);
+
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [selectedChat?.messages]);
+  }, [selectedChat?.messages, selectedChat?.id]);
 
   useEffect(() => {
     if (showTransferDialog) {
@@ -101,6 +122,58 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransfe
     }
   };
 
+  const handleArchive = async () => {
+    if (!selectedChat || !onArchiveChat) return;
+
+    if (!confirm('Vuoi archiviare questa chat?')) return;
+
+    try {
+      setActionLoading(true);
+      onArchiveChat(selectedChat.id);
+    } catch (error) {
+      console.error('Failed to archive chat:', error);
+      alert('Errore durante l\'archiviazione della chat');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleFlag = () => {
+    setShowFlagDialog(true);
+  };
+
+  const handleFlagSubmit = async () => {
+    if (!selectedChat || !onFlagChat || !flagReason.trim()) return;
+
+    try {
+      setActionLoading(true);
+      onFlagChat(selectedChat.id, flagReason);
+      setShowFlagDialog(false);
+      setFlagReason('');
+    } catch (error) {
+      console.error('Failed to flag chat:', error);
+      alert('Errore durante la segnalazione della chat');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCloseChatSession = async () => {
+    if (!selectedChat || !onCloseChatSession) return;
+
+    if (!confirm('Vuoi chiudere definitivamente questa chat? L\'utente non potrà più inviare messaggi.')) return;
+
+    try {
+      setActionLoading(true);
+      onCloseChatSession(selectedChat.id);
+    } catch (error) {
+      console.error('Failed to close chat:', error);
+      alert('Errore durante la chiusura della chat');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (!selectedChat) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -124,16 +197,55 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransfe
         </div>
 
         <div className="flex items-center gap-2">
-          {selectedChat.status === 'WITH_OPERATOR' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTransferDialog(true)}
-            >
-              <ArrowRightLeft className="h-4 w-4 mr-2" />
-              Trasferisci
-            </Button>
+          {selectedChat.status !== 'CLOSED' && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleArchive}
+                disabled={actionLoading || selectedChat.isArchived}
+                title={selectedChat.isArchived ? 'Chat già archiviata' : 'Archivia chat'}
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                {selectedChat.isArchived ? 'Archiviata' : 'Archivia'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFlag}
+                disabled={actionLoading || selectedChat.isFlagged}
+                title={selectedChat.isFlagged ? 'Chat già segnalata' : 'Segnala chat'}
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                {selectedChat.isFlagged ? 'Segnalata' : 'Segnala'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCloseChatSession}
+                disabled={actionLoading}
+                title="Chiudi chat definitivamente"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Chiudi Chat
+              </Button>
+
+              {selectedChat.status === 'WITH_OPERATOR' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTransferDialog(true)}
+                  disabled={actionLoading}
+                >
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  Trasferisci
+                </Button>
+              )}
+            </>
           )}
+
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
           </Button>
@@ -141,7 +253,7 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransfe
       </div>
 
       <ScrollArea className="flex-1 p-6">
-        <div className="space-y-4" ref={scrollAreaRef}>
+        <div className="space-y-4" ref={scrollAreaRef} key={selectedChat.id}>
           {selectedChat.messages?.map((msg: ChatMessage) => (
             <div
               key={msg.id}
@@ -238,6 +350,50 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransfe
               disabled={!selectedOperatorId || transferring}
             >
               {transferring ? 'Trasferimento...' : 'Trasferisci'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Flag Dialog */}
+      <Dialog open={showFlagDialog} onOpenChange={setShowFlagDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Segnala Chat</DialogTitle>
+            <DialogDescription>
+              Indica il motivo per cui vuoi segnalare questa chat.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Motivo segnalazione</label>
+              <Input
+                placeholder="Es: Comportamento inappropriato, spam, etc..."
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowFlagDialog(false);
+                setFlagReason('');
+              }}
+              disabled={actionLoading}
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleFlagSubmit}
+              disabled={!flagReason.trim() || actionLoading}
+              variant="destructive"
+            >
+              {actionLoading ? 'Segnalazione...' : 'Segnala'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -267,6 +267,42 @@ export default function Index() {
     }
   };
 
+  const handleArchiveChatById = async (chatId: string) => {
+    try {
+      await chatApi.archiveSession(chatId);
+      loadChats();
+      if (selectedChat?.id === chatId) {
+        setSelectedChat(null);
+      }
+    } catch (error) {
+      console.error('Failed to archive chat:', error);
+      throw error;
+    }
+  };
+
+  const handleFlagChatById = async (chatId: string, reason: string) => {
+    try {
+      await chatApi.flagSession(chatId, reason);
+      loadChats();
+    } catch (error) {
+      console.error('Failed to flag chat:', error);
+      throw error;
+    }
+  };
+
+  const handleCloseChatSession = async (chatId: string) => {
+    try {
+      await chatApi.closeSession(chatId);
+      loadChats();
+      if (selectedChat?.id === chatId) {
+        setSelectedChat(null);
+      }
+    } catch (error) {
+      console.error('Failed to close chat session:', error);
+      throw error;
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -357,6 +393,9 @@ export default function Index() {
             loadChats();
             setSelectedChat(null);
           }}
+          onArchiveChat={handleArchiveChatById}
+          onFlagChat={handleFlagChatById}
+          onCloseChatSession={handleCloseChatSession}
         />
       </div>
 
