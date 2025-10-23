@@ -26,7 +26,7 @@ const getInitials = (name: string): string => {
 };
 
 export function TopBar({ operatorName = 'Operatore', onLogout }: TopBarProps) {
-  const { operator } = useAuth();
+  const { operator, refreshOperator } = useAuth();
   const [isAvailable, setIsAvailable] = useState(operator?.isAvailable || false);
   const [toggling, setToggling] = useState(false);
 
@@ -42,6 +42,8 @@ export function TopBar({ operatorName = 'Operatore', onLogout }: TopBarProps) {
       const newState = !isAvailable;
       await operatorsApi.toggleAvailability(newState);
       setIsAvailable(newState);
+      // Refresh operator data from backend to sync AuthContext
+      await refreshOperator();
     } catch (error) {
       console.error('Failed to toggle availability:', error);
       alert('Errore durante l\'aggiornamento dello stato');

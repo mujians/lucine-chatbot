@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Profile() {
-  const { operator } = useAuth();
+  const { operator, refreshOperator } = useAuth();
   const [isAvailable, setIsAvailable] = useState(operator?.isAvailable || false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -32,6 +32,8 @@ export default function Profile() {
       const newState = !isAvailable;
       await operatorsApi.toggleAvailability(newState);
       setIsAvailable(newState);
+      // Refresh operator data from backend to sync AuthContext
+      await refreshOperator();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {

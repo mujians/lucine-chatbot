@@ -7,6 +7,7 @@ interface AuthContextType {
   operator: Operator | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshOperator: () => Promise<void>;
   loading: boolean;
 }
 
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ operator, login, logout, loading }}>
+    <AuthContext.Provider value={{ operator, login, logout, refreshOperator: fetchOperatorProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );
