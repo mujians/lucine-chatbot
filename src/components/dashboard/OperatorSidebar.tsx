@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, Ticket, Settings, BarChart3, MessageCircle } from 'lucide-react';
+import { MessageSquare, Ticket, Settings, BarChart3, MessageCircle, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarItem {
@@ -13,6 +13,7 @@ const sidebarItems: SidebarItem[] = [
   { icon: Ticket, label: 'Tickets', href: '/tickets' },
   { icon: BarChart3, label: 'Statistiche', href: '/analytics' },
   { icon: MessageCircle, label: 'Risposte Rapide', href: '/canned-responses' },
+  { icon: Activity, label: 'System Status', href: '/system-status' },
   { icon: Settings, label: 'Impostazioni', href: '/settings' },
 ];
 

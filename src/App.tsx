@@ -10,6 +10,7 @@ import Operators from '@/pages/Operators';
 import Profile from '@/pages/Profile';
 import Analytics from '@/pages/Analytics';
 import CannedResponses from '@/pages/CannedResponses';
+import SystemStatus from '@/pages/SystemStatus';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { operator, loading } = useAuth();
@@ -99,6 +100,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CannedResponses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/system-status"
+        element={
+          <ProtectedRoute>
+            <SystemStatus />
           </ProtectedRoute>
         }
       />
