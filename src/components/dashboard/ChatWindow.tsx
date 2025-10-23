@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { chatApi, operatorsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { QuickReplyPicker } from './QuickReplyPicker';
 
 interface ChatWindowProps {
   selectedChat?: ChatSession | null;
@@ -114,7 +115,9 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransfe
     <div className="flex-1 flex flex-col bg-background">
       <div className="h-16 border-b bg-card px-6 flex items-center justify-between">
         <div>
-          <h2 className="font-semibold">Chat #{selectedChat.id.slice(0, 8)}</h2>
+          <h2 className="font-semibold">
+            {selectedChat.userName || `Chat #${selectedChat.id.slice(0, 8)}`}
+          </h2>
           <p className="text-xs text-muted-foreground">
             Iniziata {format(new Date(selectedChat.createdAt), "dd MMM 'alle' HH:mm", { locale: it })}
           </p>
@@ -173,11 +176,12 @@ export function ChatWindow({ selectedChat, onSendMessage, onCloseChat, onTransfe
       <div className="border-t bg-card p-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Scrivi un messaggio..."
+            placeholder="Scrivi un messaggio o usa /shortcut per risposte rapide..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
           />
+          <QuickReplyPicker onSelect={(content) => setMessage(content)} />
           <Button onClick={handleSend} size="icon">
             <Send className="h-4 w-4" />
           </Button>

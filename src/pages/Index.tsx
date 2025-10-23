@@ -11,6 +11,7 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/api';
 import type { ChatSession } from '@/types';
+import { notificationService } from '@/services/notification.service';
 
 export default function Index() {
   const [chats, setChats] = useState<ChatSession[]>([]);
@@ -19,10 +20,16 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const { socket, connected } = useSocket();
   const { operator, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Richiedi permesso notifiche al mount
+  useEffect(() => {
+    notificationService.requestPermission();
+  }, []);
 
   // Load initial chats
   useEffect(() => {
@@ -36,11 +43,37 @@ export default function Index() {
     socket.on('new_chat_request', (data) => {
       console.log('📢 New chat request:', data);
       loadChats();
+
+      // Notifica nuova chat
+      notificationService.notifyNewChat(
+        data.sessionId,
+        data.userName || 'Utente sconosciuto'
+      );
+
+      // Incrementa unread count
+      setUnreadCount(prev => prev + 1);
+      notificationService.updateBadgeCount(unreadCount + 1);
     });
 
     socket.on('user_message', (data) => {
       console.log('💬 User message:', data);
       updateChatMessages(data.sessionId, data.message);
+
+      // Notifica solo se non è la chat attualmente selezionata
+      if (selectedChat?.id !== data.sessionId) {
+        notificationService.notifyNewMessage(
+          data.sessionId,
+          data.userName || 'Utente',
+          data.message.content
+        );
+
+        // Incrementa unread count
+        setUnreadCount(prev => prev + 1);
+        notificationService.updateBadgeCount(unreadCount + 1);
+      } else {
+        // Solo suono se è la chat selezionata
+        notificationService.playSound();
+      }
     });
 
     socket.on('chat_closed', (data) => {
@@ -54,6 +87,17 @@ export default function Index() {
     socket.on('chat_assigned', (data) => {
       console.log('✅ Chat assigned:', data);
       loadChats();
+
+      // Notifica chat assegnata
+      if (data.operatorId === operator?.id) {
+        notificationService.notifyNewChat(
+          data.sessionId,
+          data.userName || 'Utente sconosciuto'
+        );
+
+        setUnreadCount(prev => prev + 1);
+        notificationService.updateBadgeCount(unreadCount + 1);
+      }
     });
 
     socket.on('message_received', (data) => {
@@ -68,7 +112,7 @@ export default function Index() {
       socket.off('chat_assigned');
       socket.off('message_received');
     };
-  }, [socket, selectedChat]);
+  }, [socket, selectedChat, unreadCount, operator]);
 
   const loadChats = async () => {
     try {
@@ -129,6 +173,13 @@ export default function Index() {
 
   const handleSelectChat = (chat: ChatSession) => {
     setSelectedChat(chat);
+
+    // Decrementa unread count quando si apre una chat
+    if (unreadCount > 0) {
+      const newCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newCount);
+      notificationService.updateBadgeCount(newCount);
+    }
 
     // Notify backend that operator joined this chat
     if (socket && operator) {
@@ -234,6 +285,7 @@ export default function Index() {
       <TopBar
         operatorName={operator?.name || 'Operatore'}
         onLogout={handleLogout}
+        unreadCount={unreadCount}
       />
       <div className="flex flex-1 overflow-hidden">
         <OperatorSidebar />

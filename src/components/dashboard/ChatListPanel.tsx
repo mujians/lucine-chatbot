@@ -81,10 +81,10 @@ export function ChatListPanel({ chats = [], selectedChatId, onSelectChat, onDele
               <div
                 key={chat.id}
                 className={cn(
-                  "relative group rounded-lg mb-2 transition-colors",
+                  "relative group rounded-lg mb-2 transition-all border-2",
                   selectedChatId === chat.id
-                    ? "bg-accent"
-                    : "hover:bg-accent/50"
+                    ? "bg-accent border-primary shadow-md"
+                    : "hover:bg-accent/50 border-transparent"
                 )}
               >
                 <button
@@ -92,18 +92,18 @@ export function ChatListPanel({ chats = [], selectedChatId, onSelectChat, onDele
                   className="w-full p-3 text-left"
                 >
                   <div className="flex items-start justify-between mb-1 pr-8">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">
-                        Chat #{chat.id.slice(0, 8)}
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-medium text-sm truncate">
+                        {chat.userName || `Chat #${chat.id.slice(0, 8)}`}
                       </span>
                       {chat.isArchived && (
-                        <Archive className="h-3 w-3 text-muted-foreground" />
+                        <Archive className="h-3 w-3 text-muted-foreground shrink-0" />
                       )}
                       {chat.isFlagged && (
-                        <Flag className="h-3 w-3 text-orange-500" />
+                        <Flag className="h-3 w-3 text-orange-500 shrink-0" />
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
                       {format(new Date(chat.createdAt), 'HH:mm', { locale: it })}
                     </span>
                   </div>

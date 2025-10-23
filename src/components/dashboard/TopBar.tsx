@@ -1,6 +1,7 @@
 import { Bell, LogOut, Power, PowerOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import { useState, useEffect } from 'react';
 interface TopBarProps {
   operatorName?: string;
   onLogout?: () => void;
+  unreadCount?: number;
 }
 
 const getInitials = (name: string): string => {
@@ -25,7 +27,7 @@ const getInitials = (name: string): string => {
     .slice(0, 2);
 };
 
-export function TopBar({ operatorName = 'Operatore', onLogout }: TopBarProps) {
+export function TopBar({ operatorName = 'Operatore', onLogout, unreadCount = 0 }: TopBarProps) {
   const { operator, refreshOperator } = useAuth();
   const [isAvailable, setIsAvailable] = useState(operator?.isAvailable || false);
   const [toggling, setToggling] = useState(false);
@@ -83,6 +85,14 @@ export function TopBar({ operatorName = 'Operatore', onLogout }: TopBarProps) {
 
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
           </Button>
 
           <DropdownMenu>

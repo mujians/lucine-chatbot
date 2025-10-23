@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { KnowledgeItem } from '@/types';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -10,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Edit, Trash2, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { BookOpen, Edit, Trash2, ToggleLeft, ToggleRight, X, Search, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { knowledgeApi } from '@/lib/api';
@@ -38,9 +39,33 @@ export function KnowledgeList({
 }: KnowledgeListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'usage' | 'question'>('date');
 
   const categories = Array.from(new Set(items.map((item) => item.category).filter(Boolean)));
-  const hasActiveFilters = categoryFilter || isActiveFilter !== undefined;
+  const hasActiveFilters = categoryFilter || isActiveFilter !== undefined || searchQuery;
+
+  // Filtro e ordinamento
+  const filteredAndSortedItems = items
+    .filter((item) => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        item.question.toLowerCase().includes(query) ||
+        item.answer.toLowerCase().includes(query) ||
+        item.category?.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === 'usage') {
+        return (b.timesUsed || 0) - (a.timesUsed || 0);
+      } else if (sortBy === 'question') {
+        return a.question.localeCompare(b.question);
+      } else {
+        // date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
 
   const handleToggle = async (item: KnowledgeItem) => {
     try {
@@ -73,6 +98,7 @@ export function KnowledgeList({
   const clearFilters = () => {
     onCategoryFilterChange('');
     onIsActiveFilterChange(undefined);
+    setSearchQuery('');
   };
 
   if (loading) {
@@ -85,8 +111,19 @@ export function KnowledgeList({
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex items-center gap-4 pb-4 border-b border-border">
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Cerca domande, risposte o categorie..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Filters & Sort */}
+      <div className="flex items-center gap-4 pb-4 border-b border-border flex-wrap">
         <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Tutte le categorie" />
@@ -117,23 +154,38 @@ export function KnowledgeList({
           </SelectContent>
         </Select>
 
+        <Select value={sortBy} onValueChange={(value: 'date' | 'usage' | 'question') => setSortBy(value)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Ordina per..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date">Data (più recenti)</SelectItem>
+            <SelectItem value="usage">Più utilizzate</SelectItem>
+            <SelectItem value="question">Domanda (A-Z)</SelectItem>
+          </SelectContent>
+        </Select>
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4 mr-1" />
             Cancella filtri
           </Button>
         )}
+
+        <div className="ml-auto text-sm text-muted-foreground">
+          {filteredAndSortedItems.length} {filteredAndSortedItems.length === 1 ? 'documento' : 'documenti'}
+        </div>
       </div>
 
-      {items.length === 0 ? (
+      {filteredAndSortedItems.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title="Nessun documento trovato"
-          description="Non ci sono documenti nella knowledge base con i filtri selezionati. Crea un nuovo documento per iniziare."
+          description={searchQuery ? "Nessun documento corrisponde alla ricerca." : "Non ci sono documenti nella knowledge base con i filtri selezionati. Crea un nuovo documento per iniziare."}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {items.map((item) => (
+          {filteredAndSortedItems.map((item) => (
             <div
               key={item.id}
               className="bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-colors"
@@ -150,8 +202,14 @@ export function KnowledgeList({
                     <Badge variant={item.isActive ? 'default' : 'secondary'} className="text-xs">
                       {item.isActive ? 'Attivo' : 'Inattivo'}
                     </Badge>
+                    {item.timesUsed !== undefined && item.timesUsed > 0 && (
+                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        {item.timesUsed} {item.timesUsed === 1 ? 'volta' : 'volte'}
+                      </Badge>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{item.answer}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-3">{item.answer}</p>
                 </div>
               </div>
 
