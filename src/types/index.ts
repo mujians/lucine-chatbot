@@ -145,6 +145,8 @@ export interface KnowledgeItem {
     name: string;
     email: string;
   };
+  timesUsed: number;
+  lastUsedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
