@@ -27,7 +27,8 @@ export default function Operators() {
     try {
       setLoading(true);
       setError(null);
-      const data = await operatorsApi.getAll();
+      const response = await operatorsApi.getAll();
+      const data = Array.isArray(response) ? response : (response?.data || []);
       setOperators(data);
     } catch (err) {
       console.error('Failed to fetch operators:', err);

@@ -69,7 +69,8 @@ export default function Settings() {
       setLoading(true);
       setError(null);
 
-      const allSettings = await settingsApi.getAll();
+      const response = await settingsApi.getAll();
+      const allSettings = Array.isArray(response) ? response : (response?.data || []);
 
       const settingsMap: Record<string, any> = {};
       allSettings.forEach((setting: any) => {
