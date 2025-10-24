@@ -152,7 +152,7 @@ export function ChatWindow({
       setFlagReason('');
     } catch (error) {
       console.error('Failed to flag chat:', error);
-      alert('Errore durante la segnalazione della chat');
+      alert('Errore durante l\'aggiunta della nota');
     } finally {
       setActionLoading(false);
     }
@@ -215,10 +215,10 @@ export function ChatWindow({
                 size="sm"
                 onClick={handleFlag}
                 disabled={actionLoading || selectedChat.isFlagged}
-                title={selectedChat.isFlagged ? 'Chat già segnalata' : 'Segnala chat'}
+                title={selectedChat.isFlagged ? 'Nota già aggiunta' : 'Aggiungi nota'}
               >
                 <Flag className="h-4 w-4 mr-2" />
-                {selectedChat.isFlagged ? 'Segnalata' : 'Segnala'}
+                {selectedChat.isFlagged ? 'Con Nota' : 'Aggiungi Nota'}
               </Button>
 
               <Button
@@ -231,18 +231,6 @@ export function ChatWindow({
                 <XCircle className="h-4 w-4 mr-2" />
                 Chiudi Chat
               </Button>
-
-              {selectedChat.status === 'WITH_OPERATOR' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowTransferDialog(true)}
-                  disabled={actionLoading}
-                >
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  Trasferisci
-                </Button>
-              )}
             </>
           )}
 
@@ -359,17 +347,17 @@ export function ChatWindow({
       <Dialog open={showFlagDialog} onOpenChange={setShowFlagDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Segnala Chat</DialogTitle>
+            <DialogTitle>Aggiungi Nota</DialogTitle>
             <DialogDescription>
-              Indica il motivo per cui vuoi segnalare questa chat.
+              Aggiungi una nota per tenere questa chat in evidenza.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Motivo segnalazione</label>
+              <label className="text-sm font-medium">Nota</label>
               <Input
-                placeholder="Es: Comportamento inappropriato, spam, etc..."
+                placeholder="Es: Cliente importante, da richiamare, etc..."
                 value={flagReason}
                 onChange={(e) => setFlagReason(e.target.value)}
                 autoFocus
@@ -393,7 +381,7 @@ export function ChatWindow({
               disabled={!flagReason.trim() || actionLoading}
               variant="destructive"
             >
-              {actionLoading ? 'Segnalazione...' : 'Segnala'}
+              {actionLoading ? 'Salvataggio...' : 'Salva Nota'}
             </Button>
           </DialogFooter>
         </DialogContent>
