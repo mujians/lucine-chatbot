@@ -1,4 +1,5 @@
-import type { Ticket } from '@/types';
+import { useState } from 'react';
+import type { Ticket, TicketPriority } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -11,17 +12,36 @@ import { Badge } from '@/components/ui/badge';
 import { Mail, MessageSquare, User, Calendar, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { ticketsApi } from '@/lib/api';
 
 interface TicketDetailProps {
   ticket: Ticket | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdate?: () => void;
 }
 
-export function TicketDetail({ ticket, open, onOpenChange }: TicketDetailProps) {
+export function TicketDetail({ ticket, open, onOpenChange, onUpdate }: TicketDetailProps) {
+  const [updating, setUpdating] = useState(false);
+
   if (!ticket) return null;
 
   const messages = ticket.session?.messages || [];
+
+  const handlePriorityChange = async (newPriority: TicketPriority) => {
+    if (!ticket || newPriority === ticket.priority) return;
+
+    try {
+      setUpdating(true);
+      await ticketsApi.update(ticket.id, { priority: newPriority });
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Failed to update ticket priority:', error);
+      alert('Errore durante l\'aggiornamento della priorità');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,6 +55,29 @@ export function TicketDetail({ ticket, open, onOpenChange }: TicketDetailProps) 
             </div>
           </div>
         </DialogHeader>
+
+        {/* Priority Change (only if not resolved/closed) */}
+        {ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
+          <div className="border-b border-border pb-4">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-muted-foreground">
+                Priorità:
+              </label>
+              <select
+                value={ticket.priority}
+                onChange={(e) => handlePriorityChange(e.target.value as TicketPriority)}
+                disabled={updating}
+                className="px-3 py-1 border rounded-md text-sm bg-background"
+              >
+                <option value="LOW">Bassa</option>
+                <option value="NORMAL">Normale</option>
+                <option value="HIGH">Alta</option>
+                <option value="URGENT">Urgente</option>
+              </select>
+              {updating && <span className="text-xs text-muted-foreground">Aggiornamento...</span>}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-6">
           {/* User Info */}

@@ -214,6 +214,7 @@ export function TicketList({ tickets, loading, onUpdate }: TicketListProps) {
         ticket={selectedTicket}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onUpdate={onUpdate}
       />
     </div>
   );

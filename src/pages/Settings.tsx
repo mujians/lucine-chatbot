@@ -29,6 +29,8 @@ interface SettingsState {
   widgetPrimaryColor: string;
   widgetPosition: string;
   widgetGreeting: string;
+  widgetTitle: string;
+  widgetSubtitle: string;
 }
 
 const defaultSettings: SettingsState = {
@@ -47,6 +49,8 @@ const defaultSettings: SettingsState = {
   widgetPrimaryColor: '#6366f1',
   widgetPosition: 'bottom-right',
   widgetGreeting: 'Ciao! Come posso aiutarti?',
+  widgetTitle: 'LUCY - ASSISTENTE VIRTUALE',
+  widgetSubtitle: 'Chiedimi quello che vuoi sapere.',
 };
 
 export default function Settings() {
@@ -281,13 +285,30 @@ export default function Settings() {
               options: [
                 { value: 'bottom-right', label: 'In basso a destra' },
                 { value: 'bottom-left', label: 'In basso a sinistra' },
+                { value: 'top-right', label: 'In alto a destra' },
+                { value: 'top-left', label: 'In alto a sinistra' },
               ],
+            },
+            {
+              label: 'Titolo Widget',
+              type: 'text',
+              value: settings.widgetTitle,
+              onChange: (value) => handleChange('widgetTitle', value),
+              placeholder: 'LUCY - ASSISTENTE VIRTUALE',
+            },
+            {
+              label: 'Sottotitolo Widget',
+              type: 'text',
+              value: settings.widgetSubtitle,
+              onChange: (value) => handleChange('widgetSubtitle', value),
+              placeholder: 'Chiedimi quello che vuoi sapere.',
             },
             {
               label: 'Messaggio di Benvenuto',
               type: 'text',
               value: settings.widgetGreeting,
               onChange: (value) => handleChange('widgetGreeting', value),
+              placeholder: 'Ciao! Sono Lucy, il tuo assistente virtuale. 👋',
             },
           ]}
         />

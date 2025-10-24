@@ -47,6 +47,9 @@ export const ticketsApi = {
   resolve: (id: string, resolutionNotes: string) =>
     api.post(`/tickets/${id}/resolve`, { resolutionNotes }).then(res => res.data),
 
+  update: (id: string, data: { priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' }) =>
+    api.patch(`/tickets/${id}`, data).then(res => res.data),
+
   create: (data: {
     sessionId: string;
     userName: string;
