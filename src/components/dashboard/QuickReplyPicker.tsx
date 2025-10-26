@@ -14,14 +14,23 @@ import type { CannedResponse } from '@/types';
 
 interface QuickReplyPickerProps {
   onSelect: (content: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  searchQuery?: string;
 }
 
-export function QuickReplyPicker({ onSelect }: QuickReplyPickerProps) {
-  const [open, setOpen] = useState(false);
+export function QuickReplyPicker({ onSelect, open: externalOpen, onOpenChange, searchQuery: externalSearchQuery }: QuickReplyPickerProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [responses, setResponses] = useState<CannedResponse[]>([]);
   const [filteredResponses, setFilteredResponses] = useState<CannedResponse[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Use external state if provided, otherwise use internal state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+  // Use external search query as initial value, but allow internal modification
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
 
   useEffect(() => {
     if (open) {
@@ -77,7 +86,9 @@ export function QuickReplyPicker({ onSelect }: QuickReplyPickerProps) {
 
     // Chiudi il popover
     setOpen(false);
-    setSearchQuery('');
+    if (externalSearchQuery === undefined) {
+      setInternalSearchQuery('');
+    }
   };
 
   return (
@@ -102,7 +113,7 @@ export function QuickReplyPicker({ onSelect }: QuickReplyPickerProps) {
               <Input
                 placeholder="Cerca o digita /shortcut..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setInternalSearchQuery(e.target.value)}
                 className="pl-8 h-8 text-sm"
               />
             </div>

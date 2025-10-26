@@ -47,6 +47,8 @@ export function ChatWindow({
   const [flagReason, setFlagReason] = useState('');
   const [transferring, setTransferring] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showQuickReply, setShowQuickReply] = useState(false);
+  const [quickReplySearch, setQuickReplySearch] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { operator: currentOperator } = useAuth();
 
@@ -112,6 +114,8 @@ export function ChatWindow({
     if (message.trim() && onSendMessage) {
       onSendMessage(message);
       setMessage('');
+      setShowQuickReply(false);
+      setQuickReplySearch('');
     }
   };
 
@@ -120,6 +124,26 @@ export function ChatWindow({
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleMessageChange = (value: string) => {
+    setMessage(value);
+
+    // Check if user is typing a shortcut
+    if (value.startsWith('/')) {
+      setShowQuickReply(true);
+      // Extract shortcut query (remove the leading /)
+      setQuickReplySearch(value.substring(1));
+    } else {
+      setShowQuickReply(false);
+      setQuickReplySearch('');
+    }
+  };
+
+  const handleQuickReplySelect = (content: string) => {
+    setMessage(content);
+    setShowQuickReply(false);
+    setQuickReplySearch('');
   };
 
   const handleArchive = async () => {
@@ -278,10 +302,15 @@ export function ChatWindow({
           <Input
             placeholder="Scrivi un messaggio o usa /shortcut per risposte rapide..."
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => handleMessageChange(e.target.value)}
             onKeyPress={handleKeyPress}
           />
-          <QuickReplyPicker onSelect={(content) => setMessage(content)} />
+          <QuickReplyPicker
+            onSelect={handleQuickReplySelect}
+            open={showQuickReply}
+            onOpenChange={setShowQuickReply}
+            searchQuery={quickReplySearch}
+          />
           <Button onClick={handleSend} size="icon">
             <Send className="h-4 w-4" />
           </Button>
