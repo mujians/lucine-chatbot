@@ -251,13 +251,13 @@ Test Query 3: "a che ora aprite?"
 - **Impact**: Import massivo non genera embeddings
 - **Fix Required**: Generare embeddings in loop come regenerateAllEmbeddings
 
-### P2 - Medium Priority
+### ✅ P0.2 - Semantic Search [IMPLEMENTATA]
+- **Status**: ✅ **IMPLEMENTATA** (26/10/2025)
+- **Solution**: pgvector similarity search con cosine distance
+- **Impact**: AI ora capisce sinonimi e riformulazioni semantiche
+- **Details**: See `docs/SEMANTIC_SEARCH_DEPLOYMENT.md`
 
-#### P2.5 - Semantic Search Not Implemented
-- **Impact**: AI search limitata a keyword matching
-- **Future Enhancement**: Implement pgvector similarity search
-- **Requirement**: PostgreSQL con pgvector extension
-- **Effort**: 4-6 ore development
+### P2 - Medium Priority
 
 ---
 

@@ -25,36 +25,64 @@ export async function generateEmbedding(text) {
 }
 
 /**
- * Search knowledge base using semantic search
+ * Search knowledge base using semantic search with pgvector
  */
 export async function searchKnowledgeBase(query, maxResults = 5) {
   try {
     // Generate embedding for query
     const queryEmbedding = await generateEmbedding(query);
 
-    // For now, use simple text search
-    // TODO: Implement pgvector similarity search when ready
-    const results = await prisma.knowledgeItem.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { question: { contains: query, mode: 'insensitive' } },
-          { answer: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      select: {
-        id: true,
-        question: true,
-        answer: true,
-        category: true,
-      },
-      take: maxResults,
-    });
+    // Format embedding as PostgreSQL vector string: '[0.1, 0.2, ...]'
+    const vectorString = `[${queryEmbedding.join(',')}]`;
 
-    return results;
+    // Use pgvector cosine distance (<=>)  for semantic similarity
+    // Returns items ordered by similarity (most similar first)
+    const results = await prisma.$queryRawUnsafe(
+      `
+      SELECT
+        id::text,
+        question,
+        answer,
+        category,
+        (1 - (embedding <=> $1::vector))::float as similarity
+      FROM "KnowledgeItem"
+      WHERE "isActive" = true
+        AND embedding IS NOT NULL
+      ORDER BY embedding <=> $1::vector
+      LIMIT $2
+      `,
+      vectorString,
+      maxResults
+    );
+
+    // Filter by similarity threshold (0.7 = 70% similar)
+    const MIN_SIMILARITY = 0.7;
+    const relevantResults = results.filter(r => r.similarity >= MIN_SIMILARITY);
+
+    console.log(`Semantic search: found ${relevantResults.length}/${results.length} relevant results (>=${MIN_SIMILARITY} similarity)`);
+
+    return relevantResults;
   } catch (error) {
-    console.error('Search knowledge base error:', error);
-    return [];
+    console.error('Semantic search error:', error);
+
+    // Fallback to returning all active items if pgvector not available
+    console.warn('Falling back to returning all active knowledge items');
+    try {
+      const fallbackResults = await prisma.knowledgeItem.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          question: true,
+          answer: true,
+          category: true,
+        },
+        take: maxResults,
+      });
+      return fallbackResults;
+    } catch (fallbackError) {
+      console.error('Fallback search also failed:', fallbackError);
+      return [];
+    }
   }
 }
 
