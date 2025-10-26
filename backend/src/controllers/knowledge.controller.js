@@ -112,7 +112,7 @@ export const createKnowledgeItem = async (req, res) => {
         category: category || 'ALTRO',
         isActive: true,
         createdBy: req.operator.id,
-        // Note: embedding would be set here if pgvector is configured
+        embedding: embedding,
       },
       include: {
         creator: {
@@ -160,7 +160,7 @@ export const updateKnowledgeItem = async (req, res) => {
         const newText =
           (question || item.question) + ' ' + (answer || item.answer);
         const embedding = await generateEmbedding(newText);
-        // Note: would update embedding here if pgvector configured
+        updateData.embedding = embedding;
       } catch (error) {
         console.warn('Failed to regenerate embedding:', error);
       }
@@ -272,6 +272,14 @@ export const bulkImportKnowledge = async (req, res) => {
       }
 
       try {
+        // Generate embedding for this item
+        let embedding = null;
+        try {
+          embedding = await generateEmbedding(item.question + ' ' + item.answer);
+        } catch (error) {
+          console.warn(`Failed to generate embedding for item: ${item.question}`, error);
+        }
+
         const created = await prisma.knowledgeItem.create({
           data: {
             question: item.question,
@@ -279,6 +287,7 @@ export const bulkImportKnowledge = async (req, res) => {
             category: item.category || 'ALTRO',
             isActive: true,
             createdBy: req.operator.id,
+            embedding: embedding,
           },
         });
         results.push(created);

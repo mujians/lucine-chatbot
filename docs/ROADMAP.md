@@ -64,6 +64,26 @@ Improvement non bloccanti ma importanti per experience.
   - Line: `backend/src/services/openai.service.js:143`
 - **Conclusion**: No fix needed, già funzionante
 
+### ✅ P1.4 - Embeddings Not Saved on CREATE/UPDATE [COMPLETATO]
+- **Status**: ✅ **COMPLETATO** (26/10/2025)
+- **Issue**: Embeddings generati ma NON salvati in database su create/update
+- **Impact**: Embeddings persi, workaround richiesto ("Rigenera Embeddings")
+- **Fix Applicato**:
+  1. ✅ CREATE: Aggiunto `embedding: embedding` al data object (line 115)
+  2. ✅ UPDATE: Aggiunto `updateData.embedding = embedding` (line 163)
+- **File**: `backend/src/controllers/knowledge.controller.js`
+- **Testing Required**: Creare/modificare KB item e verificare embedding salvato
+
+### ✅ P1.5 - Bulk Import No Embeddings [COMPLETATO]
+- **Status**: ✅ **COMPLETATO** (26/10/2025)
+- **Issue**: Bulk import non generava embeddings affatto
+- **Impact**: Import massivi richiedevano manual "Rigenera Embeddings"
+- **Fix Applicato**:
+  1. ✅ Aggiunta generazione embedding in loop (lines 275-281)
+  2. ✅ Embedding salvato per ogni item importato (line 290)
+- **File**: `backend/src/controllers/knowledge.controller.js`
+- **Testing Required**: Bulk import CSV e verificare embeddings generati
+
 ---
 
 ## 🟡 P2 - MEDIUM PRIORITY (Post-Testing)
@@ -159,15 +179,22 @@ Improvement non bloccanti ma importanti per experience.
 - [x] P1.1 - SMTP integration (email.service.js created)
 - [x] P1.2 - Archive button for CLOSED chats
 - [x] P1.3 - Confidence threshold verified OK
+- [x] P1.4 - Embeddings save on CREATE/UPDATE fixed
+- [x] P1.5 - Bulk import embeddings generation added
 - [x] ROADMAP.md created
+- [x] TEST_KNOWLEDGE_BASE.md created (comprehensive report)
+- [x] Knowledge Base testing completed
 
 ### In Corso
-- [ ] Testing Knowledge Base
-- [ ] Testing Chat → Ticket flow
+- [ ] Commit KB embedding fixes
+- [ ] Deploy KB fixes to production
 
 ### Da Fare
-- [ ] Complete testing roadmap (KB, Chat, WebSocket, API, UX)
-- [ ] P2 improvements (widget cache, settings UI, test buttons, bulk actions)
+- [ ] Testing Chat → Ticket flow
+- [ ] Testing WebSocket notifications
+- [ ] Testing API error handling
+- [ ] Admin UX audit
+- [ ] P2 improvements (widget cache, settings UI, test buttons, bulk actions, semantic search)
 
 ---
 
