@@ -5,14 +5,153 @@
 
 ## Indice
 
-1. [Panoramica Sistema](#panoramica-sistema)
-2. [Funzionalità Implementate](#funzionalità-implementate)
-3. [Dashboard Operatore](#dashboard-operatore)
-4. [Widget Chat](#widget-chat)
-5. [Configurazione Sistema](#configurazione-sistema)
-6. [Integrazioni](#integrazioni)
-7. [Database](#database)
-8. [Deploy](#deploy)
+1. [Struttura Progetto](#struttura-progetto)
+2. [Panoramica Sistema](#panoramica-sistema)
+3. [Funzionalità Implementate](#funzionalità-implementate)
+4. [Dashboard Operatore](#dashboard-operatore)
+5. [Widget Chat](#widget-chat)
+6. [Configurazione Sistema](#configurazione-sistema)
+7. [Integrazioni](#integrazioni)
+8. [Database](#database)
+9. [Deploy](#deploy)
+10. [Linee Guida Sviluppo](#linee-guida-sviluppo)
+
+---
+
+## Struttura Progetto
+
+### Cartelle sul Desktop
+
+Il progetto è organizzato in **TRE cartelle** con funzioni diverse:
+
+```
+~/Desktop/
+├── lucine-production/          # ⭐ DASHBOARD + BACKEND (GitHub + Render)
+│   ├── backend/                # Backend Node.js + Prisma
+│   ├── src/                    # Frontend React + TypeScript (Dashboard)
+│   ├── docs/                   # Documentazione aggiornata
+│   ├── public/                 # Asset statici
+│   ├── .git/                   # Repository Git ATTIVO
+│   └── README.md
+│
+├── lucine-minimal/             # ⭐ TEMA SHOPIFY (Widget in produzione)
+│   ├── snippets/
+│   │   └── chatbot-popup.liquid    # Widget chat attivo su Shopify
+│   ├── assets/                 # CSS/JS tema
+│   ├── .git/                   # Git separato (tema Shopify)
+│   └── chatbot-backend/        # [Obsoleto - NON usare]
+│
+└── BACKUP-chatbot-lucy-2025-20251021/    # 💾 BACKUP (riferimento)
+    ├── frontend-dashboard/     # Vecchia dashboard (codice di riferimento)
+    ├── backend/                # Vecchio backend (codice di riferimento)
+    └── *.md                    # Vecchia documentazione
+```
+
+### ⚠️ IMPORTANTE: Quale cartella usare per cosa
+
+**Dashboard/Backend** → `/Users/brnobtt/Desktop/lucine-production/`
+- Modifiche al dashboard operatore
+- Modifiche alle API backend
+- Modifiche al database (Prisma schema)
+- **Git**: github.com/mujians/lucine-chatbot
+- **Deploy**: Render.com (auto-deploy)
+
+**Widget Shopify** → `/Users/brnobtt/Desktop/lucine-minimal/snippets/chatbot-popup.liquid`
+- Modifiche al widget chat (UI, colori, messaggi)
+- File attivo: `chatbot-popup.liquid` (42KB, ultima modifica 23 Ott)
+- **Git**: Repository separato (tema Shopify)
+- **Deploy**: Upload manuale su Shopify Admin
+
+**Riferimento** → `/Users/brnobtt/Desktop/BACKUP-chatbot-lucy-2025-20251021/`
+- Consultare codice vecchio se serve recuperare funzioni
+- Vecchie migration Prisma
+- NON modificare, solo leggere
+
+### Connessioni Git e Deploy
+
+```
+DASHBOARD + BACKEND:
+lucine-production/
+    ↓ git push origin main
+GitHub: github.com/mujians/lucine-chatbot
+    ↓ auto-deploy webhook
+Render.com: https://chatbot-lucy-2025.onrender.com
+    ↓
+Live Dashboard: https://chatbot-lucy-2025.onrender.com
+
+WIDGET:
+lucine-minimal/snippets/chatbot-popup.liquid
+    ↓ manual upload
+Shopify Admin > Online Store > Themes > Edit Code
+    ↓
+Live Widget: https://lucinedinatale.myshopify.com (embedded)
+```
+
+**Workflow Dashboard**:
+1. Modifiche in `lucine-production/`
+2. `git add -A && git commit -m "..." && git push origin main`
+3. Render rileva push e fa auto-deploy (build automatico)
+4. Dashboard live aggiornata in ~5-10 minuti
+
+**Workflow Widget**:
+1. Modifiche in `lucine-minimal/snippets/chatbot-popup.liquid`
+2. Shopify Admin > Themes > Edit Code > Snippets > chatbot-popup.liquid
+3. Copy/paste codice aggiornato
+4. Save
+5. Widget live aggiornato immediatamente
+
+### Git Configuration
+
+```bash
+# Current repository
+cd /Users/brnobtt/Desktop/lucine-production
+git remote -v
+# origin  https://github.com/mujians/lucine-chatbot.git (fetch)
+# origin  https://github.com/mujians/lucine-chatbot.git (push)
+
+# Branch principale
+git branch
+# * main  (branch attivo)
+```
+
+### File Importanti da Conoscere
+
+**Backend**:
+- `backend/src/server.js` - Entry point server
+- `backend/src/controllers/` - API endpoints
+- `backend/src/services/openai.service.js` - AI logic (prompt dinamico)
+- `backend/prisma/schema.prisma` - Database schema
+
+**Frontend**:
+- `src/App.tsx` - React Router setup
+- `src/pages/Settings.tsx` - Configurazione completa (30+ settings)
+- `src/components/dashboard/` - Componenti dashboard
+- `src/components/settings/SettingsSection.tsx` - Form component
+
+**Documentazione**:
+- `docs/IMPLEMENTATION_SUMMARY.md` - Questo documento
+- `docs/TESTING_GUIDE.md` - Guida test completa
+- `README.md` - Project README
+
+**Deploy**:
+- `public/_redirects` - SPA routing fix (Render)
+- `package.json` - Scripts e dipendenze
+
+### Database PostgreSQL
+
+```
+Database: PostgreSQL (hosted on Render)
+Connection: Via DATABASE_URL environment variable
+Access: Prisma ORM
+
+Tabelle principali:
+- ChatSession
+- Ticket
+- Operator
+- KnowledgeItem
+- CannedResponse
+- SystemSettings
+```
 
 ---
 
@@ -561,5 +700,159 @@ git push origin main
 
 ---
 
+## Linee Guida Sviluppo
+
+### 📝 REGOLA FONDAMENTALE: Aggiorna SEMPRE la Documentazione
+
+**QUANDO modifichi codice, DEVI aggiornare i file .md**:
+
+#### 1. Modifiche a Features o Configurazione
+Se aggiungi/modifichi funzionalità dashboard, widget, settings, API:
+- ✅ Aggiorna `docs/IMPLEMENTATION_SUMMARY.md`
+- ✅ Aggiorna sezione specifica (es. "Dashboard Operatore", "Configurazione Sistema")
+- ✅ Aggiungi nota in "Key Files Modified (Last Session)"
+- ✅ Aggiorna data: "Ultimo aggiornamento"
+
+**Esempio**:
+```markdown
+### Key Files Modified (Last Session)
+1. src/pages/Settings.tsx - Expanded con 30+ nuove settings
+2. backend/src/services/openai.service.js - Caricamento prompt dinamico
+3. [NUOVO] src/components/chat/MessageBubble.tsx - Added emoji support
+```
+
+#### 2. Nuovi Test o Procedure
+Se aggiungi nuove funzioni che richiedono testing:
+- ✅ Aggiorna `docs/TESTING_GUIDE.md`
+- ✅ Aggiungi checklist per nuova feature
+- ✅ Specifica steps di testing
+
+#### 3. Cambio Struttura Progetto
+Se crei/sposti/elimini cartelle o file importanti:
+- ✅ Aggiorna sezione "Struttura Progetto"
+- ✅ Aggiorna "File Structure"
+- ✅ Specifica motivo del cambio
+
+#### 4. Modifiche Deploy o Git
+Se cambi workflow, env variables, build process:
+- ✅ Aggiorna sezione "Deploy"
+- ✅ Aggiorna "Git Workflow"
+- ✅ Documenta nuovi step
+
+#### 5. Bug Fix Importanti
+Se risolvi bug critici o ricorrenti:
+- ✅ Aggiorna `docs/TESTING_GUIDE.md` con come testare fix
+- ✅ Aggiungi nota in IMPLEMENTATION_SUMMARY se impatta architettura
+
+### ⚠️ Files .md sul Desktop (Fuori da Git)
+
+**File sul Desktop root** (`/Users/brnobtt/Desktop/*.md`):
+- Questi NON sono versionati in Git
+- Sono documentazione temporanea di sessioni passate
+- Utili come riferimento ma possono essere obsoleti
+- **Priorità**: Sempre usare `lucine-production/docs/*.md` come source of truth
+
+**File .md vecchi trovati**:
+```
+DEPLOYMENT-GUIDE.md             (24 Ott - deploy dashboard)
+SESSION-SUMMARY-FINAL.md        (24 Ott - sessione fix)
+DASHBOARD-FUNCTIONAL-ANALYSIS.md
+TESTING-CHECKLIST-COMPLETA.md
+MISSING_FEATURES_ANALYSIS.md
+ERRORI-E-FIX-RIEPILOGO.md
+WIDGET-SETTINGS-INTEGRATION.md
+DASHBOARD-ISSUES-ANALYSIS.md
+TWILIO-WHATSAPP-SETUP.md
+```
+
+Questi possono essere utili per consultare storia problemi/fix, ma:
+- ✅ Info rilevanti devono essere migrate in `docs/IMPLEMENTATION_SUMMARY.md`
+- ✅ Poi possono essere archiviati o eliminati
+- ❌ NON usarli come documentazione ufficiale
+
+### 🎯 Checklist Pre-Commit
+
+Prima di ogni commit, verifica:
+- [ ] Codice modificato funziona (`npm run build` senza errori)
+- [ ] `docs/IMPLEMENTATION_SUMMARY.md` aggiornato con modifiche
+- [ ] `docs/TESTING_GUIDE.md` aggiornato se serve
+- [ ] Data ultimo aggiornamento cambiata
+- [ ] Commit message descrittivo con feature/fix
+- [ ] Push a GitHub `origin/main`
+
+### 📊 Standard Commit Messages
+
+```bash
+# Features
+git commit -m "feat: add operator availability toggle"
+
+# Bug fixes
+git commit -m "fix: resolve 404 on page refresh"
+
+# Documentation
+git commit -m "docs: update widget integration guide"
+
+# Configuration
+git commit -m "config: add new environment variables"
+
+# Refactoring
+git commit -m "refactor: optimize chat message rendering"
+```
+
+### 🔄 Workflow Completo
+
+```bash
+# 1. Modifica codice
+vim src/pages/Settings.tsx
+
+# 2. Test locale
+npm run build
+
+# 3. Aggiorna documentazione
+vim docs/IMPLEMENTATION_SUMMARY.md
+# - Aggiungi modifica in sezione appropriata
+# - Aggiorna "Key Files Modified"
+# - Cambia data
+
+# 4. Commit con messaggio descrittivo
+git add -A
+git commit -m "feat: add email notification settings
+
+- Add SMTP configuration fields in Settings
+- Add email template customization
+- Update backend to send emails via Nodemailer
+
+Updated docs/IMPLEMENTATION_SUMMARY.md with new settings.
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 5. Push (trigger auto-deploy)
+git push origin main
+
+# 6. Verifica deploy su Render
+# Check https://dashboard.render.com logs
+```
+
+### 💡 Best Practices
+
+**DO**:
+- ✅ Documentare MENTRE scrivi codice, non dopo
+- ✅ Usare esempi concreti nella documentazione
+- ✅ Includere code snippets quando utile
+- ✅ Specificare file paths con line numbers quando rilevante
+- ✅ Mantenere TOC (indice) aggiornato se aggiungi sezioni
+
+**DON'T**:
+- ❌ Committare senza aggiornare docs
+- ❌ Scrivere solo "varie modifiche" nei commit
+- ❌ Lasciare documentazione obsoleta
+- ❌ Dimenticare di aggiornare la data
+- ❌ Usare file .md sul Desktop come reference principale
+
+---
+
 **Ultimo aggiornamento**: 26 Ottobre 2025
 **Maintained by**: Claude Code
+
+**NOTA PER CLAUDE AI**: Quando modifichi codice in questo progetto, DEVI sempre aggiornare i file .md rilevanti prima di committare. Non è opzionale.
