@@ -28,11 +28,31 @@ export default function Operators() {
       setLoading(true);
       setError(null);
       const response = await operatorsApi.getAll();
-      const data = Array.isArray(response) ? response : (response?.data || []);
+      console.log('Operators API response:', response);
+
+      // Handle different response formats
+      let data = [];
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        data = response.data;
+      } else if (typeof response === 'object' && response !== null) {
+        console.warn('Unexpected operators format:', response);
+        data = [];
+      }
+
       setOperators(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch operators:', err);
-      setError('Errore durante il caricamento degli operatori');
+      console.error('Error response:', err.response);
+
+      if (err.response?.status === 404) {
+        setError('Endpoint operatori non trovato sul backend');
+      } else if (err.response?.status === 401) {
+        setError('Non autorizzato. Effettua il login.');
+      } else {
+        setError('Errore durante il caricamento degli operatori');
+      }
     } finally {
       setLoading(false);
     }

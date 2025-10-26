@@ -70,20 +70,42 @@ export default function Settings() {
       setError(null);
 
       const response = await settingsApi.getAll();
-      const allSettings = Array.isArray(response) ? response : (response?.data || []);
+      console.log('Settings API response:', response);
+
+      // Handle different response formats
+      let allSettings = [];
+      if (Array.isArray(response)) {
+        allSettings = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        allSettings = response.data;
+      } else if (typeof response === 'object' && response !== null) {
+        // If response is an object but not an array, convert it to array format
+        console.warn('Unexpected settings format, using defaults');
+        allSettings = [];
+      }
 
       const settingsMap: Record<string, any> = {};
       allSettings.forEach((setting: any) => {
-        settingsMap[setting.key] = setting.value;
+        if (setting && setting.key) {
+          settingsMap[setting.key] = setting.value;
+        }
       });
 
       setSettings((prev) => ({
         ...prev,
         ...settingsMap,
       }));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch settings:', err);
-      setError('Errore durante il caricamento delle impostazioni');
+      console.error('Error response:', err.response);
+
+      if (err.response?.status === 404) {
+        setError('Endpoint settings non trovato sul backend. Usando valori di default.');
+      } else if (err.response?.status === 401) {
+        setError('Non autorizzato. Effettua il login.');
+      } else {
+        setError('Errore durante il caricamento delle impostazioni');
+      }
     } finally {
       setLoading(false);
     }
