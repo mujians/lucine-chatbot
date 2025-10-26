@@ -265,11 +265,36 @@ export const closeSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
 
-    const session = await prisma.chatSession.update({
+    // Get session first to add closing message
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Parse existing messages
+    const messages = JSON.parse(session.messages || '[]');
+
+    // Add system closing message
+    const closingMessage = {
+      id: Date.now().toString(),
+      type: 'system',
+      content: 'La chat è stata chiusa dall\'operatore. Grazie per averci contattato!',
+      timestamp: new Date().toISOString(),
+    };
+    messages.push(closingMessage);
+
+    // Update session with closing message
+    const updatedSession = await prisma.chatSession.update({
       where: { id: sessionId },
       data: {
         status: 'CLOSED',
         closedAt: new Date(),
+        messages: JSON.stringify(messages),
       },
     });
 
@@ -283,14 +308,18 @@ export const closeSession = async (req, res) => {
       });
     }
 
-    // Notify via WebSocket
+    // Notify via WebSocket with the closing message
     io.to(`chat:${sessionId}`).emit('chat_closed', {
       sessionId: sessionId,
+      message: closingMessage,
     });
+
+    // Also emit new message event for the widget
+    io.to(`chat:${sessionId}`).emit('new_message', closingMessage);
 
     res.json({
       success: true,
-      data: session,
+      data: updatedSession,
     });
   } catch (error) {
     console.error('Close session error:', error);
