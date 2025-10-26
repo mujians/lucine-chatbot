@@ -12,6 +12,7 @@ interface SettingsState {
   openaiModel: string;
   openaiTemperature: number;
   aiConfidenceThreshold: number;
+  aiSystemPrompt: string;
 
   // WhatsApp Settings
   twilioAccountSid: string;
@@ -25,32 +26,106 @@ interface SettingsState {
   smtpPassword: string;
   emailFrom: string;
 
-  // Widget Settings
-  widgetPrimaryColor: string;
+  // Widget Colors
+  widgetHeaderColor: string;
+  widgetUserBalloonColor: string;
+  widgetOperatorBalloonColor: string;
+  widgetAiBalloonColor: string;
+  widgetSendButtonColor: string;
+  widgetBackgroundColor: string;
+  widgetInputBackgroundColor: string;
+  widgetTextColor: string;
+
+  // Widget Layout
   widgetPosition: string;
-  widgetGreeting: string;
   widgetTitle: string;
   widgetSubtitle: string;
+
+  // Widget Messages - Initial
+  widgetGreeting: string;
+  widgetPlaceholder: string;
+
+  // Widget Messages - System
+  widgetOperatorJoined: string;
+  widgetOperatorLeft: string;
+  widgetChatClosed: string;
+  widgetTypingIndicator: string;
+
+  // Widget Messages - Actions
+  widgetRequestOperatorPrompt: string;
+  widgetNoOperatorAvailable: string;
+  widgetTicketCreated: string;
+
+  // Widget Messages - Ticket Form
+  widgetTicketFormTitle: string;
+  widgetTicketFormDescription: string;
+  widgetTicketContactMethodLabel: string;
+  widgetTicketWhatsappLabel: string;
+  widgetTicketEmailLabel: string;
+  widgetTicketMessageLabel: string;
+  widgetTicketSubmitButton: string;
+  widgetTicketCancelButton: string;
 }
 
 const defaultSettings: SettingsState = {
+  // AI Settings
   openaiApiKey: '',
   openaiModel: 'gpt-4-turbo-preview',
   openaiTemperature: 0.7,
   aiConfidenceThreshold: 0.7,
+  aiSystemPrompt: 'Sei Lucy, l\'assistente virtuale di Lucine di Natale. Rispondi in modo cortese e professionale alle domande degli utenti. Se non sei sicuro di una risposta, suggerisci di parlare con un operatore umano.',
+
+  // WhatsApp Settings
   twilioAccountSid: '',
   twilioAuthToken: '',
   twilioWhatsappNumber: '',
+
+  // Email Settings
   smtpHost: '',
   smtpPort: 587,
   smtpUser: '',
   smtpPassword: '',
   emailFrom: '',
-  widgetPrimaryColor: '#6366f1',
+
+  // Widget Colors
+  widgetHeaderColor: '#dc2626',
+  widgetUserBalloonColor: '#059669',
+  widgetOperatorBalloonColor: '#10B981',
+  widgetAiBalloonColor: '#059669',
+  widgetSendButtonColor: '#dc2626',
+  widgetBackgroundColor: '#1a1a1a',
+  widgetInputBackgroundColor: '#2d2d2d',
+  widgetTextColor: '#ffffff',
+
+  // Widget Layout
   widgetPosition: 'bottom-right',
-  widgetGreeting: 'Ciao! Come posso aiutarti?',
   widgetTitle: 'LUCY - ASSISTENTE VIRTUALE',
   widgetSubtitle: 'Chiedimi quello che vuoi sapere.',
+
+  // Widget Messages - Initial
+  widgetGreeting: 'Ciao! Sono Lucy, il tuo assistente virtuale. Come posso aiutarti?',
+  widgetPlaceholder: 'Scrivi un messaggio...',
+
+  // Widget Messages - System
+  widgetOperatorJoined: '{operatorName} si è unito alla chat',
+  widgetOperatorLeft: 'L\'operatore ha lasciato la chat',
+  widgetChatClosed: 'La chat è stata chiusa dall\'operatore. Grazie per averci contattato!',
+  widgetTypingIndicator: 'sta scrivendo',
+
+  // Widget Messages - Actions
+  widgetRequestOperatorPrompt: 'Vuoi parlare con un operatore umano?',
+  widgetNoOperatorAvailable: 'Nessun operatore disponibile al momento. Vuoi aprire un ticket?',
+  widgetTicketCreated: 'Ticket creato con successo! Ti contatteremo presto.',
+
+  // Widget Messages - Ticket Form
+  widgetTicketFormTitle: 'Apri un Ticket',
+  widgetTicketFormDescription: 'Lascia i tuoi contatti e ti risponderemo al più presto',
+  widgetTicketContactMethodLabel: 'Come preferisci essere contattato?',
+  widgetTicketWhatsappLabel: 'WhatsApp',
+  widgetTicketEmailLabel: 'Email',
+  widgetTicketMessageLabel: 'Descrivi brevemente la tua richiesta',
+  widgetTicketSubmitButton: 'Invia Ticket',
+  widgetTicketCancelButton: 'Annulla',
 };
 
 export default function Settings() {
@@ -216,6 +291,15 @@ export default function Settings() {
               step: 0.1,
               description: 'Soglia minima di confidenza per le risposte AI (0-1)',
             },
+            {
+              label: 'System Prompt',
+              type: 'textarea',
+              value: settings.aiSystemPrompt,
+              onChange: (value) => handleChange('aiSystemPrompt', value),
+              placeholder: 'Sei un assistente virtuale...',
+              description: 'Prompt di sistema che definisce il comportamento e la personalità dell\'AI',
+              rows: 4,
+            },
           ]}
         />
 
@@ -289,17 +373,75 @@ export default function Settings() {
           ]}
         />
 
-        {/* Widget Settings */}
+        {/* Widget Colors */}
         <SettingsSection
-          title="Widget"
-          description="Configura l'aspetto e il comportamento del widget"
+          title="Widget - Colori"
+          description="Personalizza i colori del widget chat"
           fields={[
             {
-              label: 'Colore Primario',
+              label: 'Header',
               type: 'color',
-              value: settings.widgetPrimaryColor,
-              onChange: (value) => handleChange('widgetPrimaryColor', value),
+              value: settings.widgetHeaderColor,
+              onChange: (value) => handleChange('widgetHeaderColor', value),
+              description: 'Colore dell\'intestazione del widget',
             },
+            {
+              label: 'Balloon Utente',
+              type: 'color',
+              value: settings.widgetUserBalloonColor,
+              onChange: (value) => handleChange('widgetUserBalloonColor', value),
+              description: 'Colore dei messaggi inviati dall\'utente',
+            },
+            {
+              label: 'Balloon Operatore',
+              type: 'color',
+              value: settings.widgetOperatorBalloonColor,
+              onChange: (value) => handleChange('widgetOperatorBalloonColor', value),
+              description: 'Colore dei messaggi inviati dall\'operatore',
+            },
+            {
+              label: 'Balloon AI',
+              type: 'color',
+              value: settings.widgetAiBalloonColor,
+              onChange: (value) => handleChange('widgetAiBalloonColor', value),
+              description: 'Colore dei messaggi generati dall\'AI',
+            },
+            {
+              label: 'Pulsante Invio',
+              type: 'color',
+              value: settings.widgetSendButtonColor,
+              onChange: (value) => handleChange('widgetSendButtonColor', value),
+              description: 'Colore del pulsante di invio messaggio',
+            },
+            {
+              label: 'Sfondo Widget',
+              type: 'color',
+              value: settings.widgetBackgroundColor,
+              onChange: (value) => handleChange('widgetBackgroundColor', value),
+              description: 'Colore di sfondo del widget',
+            },
+            {
+              label: 'Sfondo Input',
+              type: 'color',
+              value: settings.widgetInputBackgroundColor,
+              onChange: (value) => handleChange('widgetInputBackgroundColor', value),
+              description: 'Colore di sfondo del campo input',
+            },
+            {
+              label: 'Colore Testo',
+              type: 'color',
+              value: settings.widgetTextColor,
+              onChange: (value) => handleChange('widgetTextColor', value),
+              description: 'Colore del testo principale',
+            },
+          ]}
+        />
+
+        {/* Widget Layout */}
+        <SettingsSection
+          title="Widget - Layout"
+          description="Configura posizione e intestazione del widget"
+          fields={[
             {
               label: 'Posizione',
               type: 'select',
@@ -313,25 +455,180 @@ export default function Settings() {
               ],
             },
             {
-              label: 'Titolo Widget',
+              label: 'Titolo',
               type: 'text',
               value: settings.widgetTitle,
               onChange: (value) => handleChange('widgetTitle', value),
               placeholder: 'LUCY - ASSISTENTE VIRTUALE',
+              description: 'Titolo mostrato nell\'header del widget',
             },
             {
-              label: 'Sottotitolo Widget',
+              label: 'Sottotitolo',
               type: 'text',
               value: settings.widgetSubtitle,
               onChange: (value) => handleChange('widgetSubtitle', value),
               placeholder: 'Chiedimi quello che vuoi sapere.',
+              description: 'Sottotitolo mostrato sotto il titolo',
             },
+          ]}
+        />
+
+        {/* Widget Messages - Initial */}
+        <SettingsSection
+          title="Widget - Messaggi Iniziali"
+          description="Messaggi mostrati all'avvio della chat"
+          fields={[
             {
               label: 'Messaggio di Benvenuto',
-              type: 'text',
+              type: 'textarea',
               value: settings.widgetGreeting,
               onChange: (value) => handleChange('widgetGreeting', value),
-              placeholder: 'Ciao! Sono Lucy, il tuo assistente virtuale. 👋',
+              placeholder: 'Ciao! Sono Lucy...',
+              description: 'Primo messaggio mostrato quando l\'utente apre il widget',
+              rows: 2,
+            },
+            {
+              label: 'Placeholder Input',
+              type: 'text',
+              value: settings.widgetPlaceholder,
+              onChange: (value) => handleChange('widgetPlaceholder', value),
+              placeholder: 'Scrivi un messaggio...',
+              description: 'Testo segnaposto nel campo di input',
+            },
+          ]}
+        />
+
+        {/* Widget Messages - System */}
+        <SettingsSection
+          title="Widget - Messaggi di Sistema"
+          description="Messaggi mostrati per eventi di sistema"
+          fields={[
+            {
+              label: 'Operatore Connesso',
+              type: 'text',
+              value: settings.widgetOperatorJoined,
+              onChange: (value) => handleChange('widgetOperatorJoined', value),
+              placeholder: '{operatorName} si è unito alla chat',
+              description: 'Usa {operatorName} per il nome dell\'operatore',
+            },
+            {
+              label: 'Operatore Disconnesso',
+              type: 'text',
+              value: settings.widgetOperatorLeft,
+              onChange: (value) => handleChange('widgetOperatorLeft', value),
+              placeholder: 'L\'operatore ha lasciato la chat',
+            },
+            {
+              label: 'Chat Chiusa',
+              type: 'text',
+              value: settings.widgetChatClosed,
+              onChange: (value) => handleChange('widgetChatClosed', value),
+              placeholder: 'La chat è stata chiusa...',
+              description: 'Messaggio quando l\'operatore chiude la chat',
+            },
+            {
+              label: 'Indicatore Digitazione',
+              type: 'text',
+              value: settings.widgetTypingIndicator,
+              onChange: (value) => handleChange('widgetTypingIndicator', value),
+              placeholder: 'sta scrivendo',
+              description: 'Testo mostrato quando qualcuno sta scrivendo',
+            },
+          ]}
+        />
+
+        {/* Widget Messages - Actions */}
+        <SettingsSection
+          title="Widget - Messaggi Azioni"
+          description="Messaggi per richieste e azioni dell'utente"
+          fields={[
+            {
+              label: 'Richiesta Operatore',
+              type: 'text',
+              value: settings.widgetRequestOperatorPrompt,
+              onChange: (value) => handleChange('widgetRequestOperatorPrompt', value),
+              placeholder: 'Vuoi parlare con un operatore umano?',
+              description: 'Messaggio quando l\'AI suggerisce di parlare con un operatore',
+            },
+            {
+              label: 'Nessun Operatore Disponibile',
+              type: 'text',
+              value: settings.widgetNoOperatorAvailable,
+              onChange: (value) => handleChange('widgetNoOperatorAvailable', value),
+              placeholder: 'Nessun operatore disponibile...',
+              description: 'Messaggio quando nessun operatore è online',
+            },
+            {
+              label: 'Ticket Creato',
+              type: 'text',
+              value: settings.widgetTicketCreated,
+              onChange: (value) => handleChange('widgetTicketCreated', value),
+              placeholder: 'Ticket creato con successo!',
+              description: 'Messaggio di conferma creazione ticket',
+            },
+          ]}
+        />
+
+        {/* Widget Messages - Ticket Form */}
+        <SettingsSection
+          title="Widget - Form Ticket"
+          description="Testi del form di creazione ticket"
+          fields={[
+            {
+              label: 'Titolo Form',
+              type: 'text',
+              value: settings.widgetTicketFormTitle,
+              onChange: (value) => handleChange('widgetTicketFormTitle', value),
+              placeholder: 'Apri un Ticket',
+            },
+            {
+              label: 'Descrizione Form',
+              type: 'text',
+              value: settings.widgetTicketFormDescription,
+              onChange: (value) => handleChange('widgetTicketFormDescription', value),
+              placeholder: 'Lascia i tuoi contatti...',
+            },
+            {
+              label: 'Label Metodo Contatto',
+              type: 'text',
+              value: settings.widgetTicketContactMethodLabel,
+              onChange: (value) => handleChange('widgetTicketContactMethodLabel', value),
+              placeholder: 'Come preferisci essere contattato?',
+            },
+            {
+              label: 'Label WhatsApp',
+              type: 'text',
+              value: settings.widgetTicketWhatsappLabel,
+              onChange: (value) => handleChange('widgetTicketWhatsappLabel', value),
+              placeholder: 'WhatsApp',
+            },
+            {
+              label: 'Label Email',
+              type: 'text',
+              value: settings.widgetTicketEmailLabel,
+              onChange: (value) => handleChange('widgetTicketEmailLabel', value),
+              placeholder: 'Email',
+            },
+            {
+              label: 'Label Messaggio',
+              type: 'text',
+              value: settings.widgetTicketMessageLabel,
+              onChange: (value) => handleChange('widgetTicketMessageLabel', value),
+              placeholder: 'Descrivi brevemente...',
+            },
+            {
+              label: 'Testo Pulsante Invia',
+              type: 'text',
+              value: settings.widgetTicketSubmitButton,
+              onChange: (value) => handleChange('widgetTicketSubmitButton', value),
+              placeholder: 'Invia Ticket',
+            },
+            {
+              label: 'Testo Pulsante Annulla',
+              type: 'text',
+              value: settings.widgetTicketCancelButton,
+              onChange: (value) => handleChange('widgetTicketCancelButton', value),
+              placeholder: 'Annulla',
             },
           ]}
         />

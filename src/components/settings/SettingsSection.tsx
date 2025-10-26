@@ -8,7 +8,7 @@ import {
 
 interface SettingsField {
   label: string;
-  type: 'text' | 'password' | 'number' | 'select' | 'color';
+  type: 'text' | 'password' | 'number' | 'select' | 'color' | 'textarea';
   value: any;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -17,6 +17,7 @@ interface SettingsField {
   min?: number;
   max?: number;
   step?: number;
+  rows?: number;
 }
 
 interface SettingsSectionProps {
@@ -68,6 +69,17 @@ export function SettingsSection({ title, description, fields }: SettingsSectionP
             step={field.step}
             placeholder={field.placeholder}
             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        );
+
+      case 'textarea':
+        return (
+          <textarea
+            value={field.value}
+            onChange={(e) => field.onChange(e.target.value)}
+            placeholder={field.placeholder}
+            rows={field.rows || 3}
+            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
           />
         );
 
