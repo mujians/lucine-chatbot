@@ -101,13 +101,20 @@ app.use((req, res) => {
 const PORT = config.port;
 
 httpServer.listen(PORT, () => {
+  // Determine public URL based on environment
+  const publicUrl = config.nodeEnv === 'production'
+    ? (process.env.RENDER_EXTERNAL_URL || `https://chatbot-lucy-2025.onrender.com`)
+    : `http://localhost:${PORT}`;
+
+  const wsUrl = publicUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+
   console.log('\n🚀 Lucine Chatbot Backend Server');
   console.log('================================');
   console.log(`📡 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${config.nodeEnv}`);
-  console.log(`🔗 API: http://localhost:${PORT}/api`);
-  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
-  console.log(`📊 Health: http://localhost:${PORT}/health`);
+  console.log(`🔗 API: ${publicUrl}/api`);
+  console.log(`🔌 WebSocket: ${wsUrl}`);
+  console.log(`📊 Health: ${publicUrl}/health`);
   console.log('================================\n');
 
   // Start background jobs
