@@ -124,12 +124,12 @@ export function KnowledgeList({
 
       {/* Filters & Sort */}
       <div className="flex items-center gap-4 pb-4 border-b border-border flex-wrap">
-        <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
+        <Select value={categoryFilter || 'all'} onValueChange={(value) => onCategoryFilterChange(value === 'all' ? '' : value)}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Tutte le categorie" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutte le categorie</SelectItem>
+            <SelectItem value="all">Tutte le categorie</SelectItem>
             {categories.map((cat) => (
               <SelectItem key={cat} value={cat!}>
                 {cat}
@@ -139,16 +139,16 @@ export function KnowledgeList({
         </Select>
 
         <Select
-          value={isActiveFilter === undefined ? '' : isActiveFilter ? 'true' : 'false'}
+          value={isActiveFilter === undefined ? 'all' : isActiveFilter ? 'true' : 'false'}
           onValueChange={(value: string) =>
-            onIsActiveFilterChange(value === '' ? undefined : value === 'true')
+            onIsActiveFilterChange(value === 'all' ? undefined : value === 'true')
           }
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Tutti gli stati" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti gli stati</SelectItem>
+            <SelectItem value="all">Tutti gli stati</SelectItem>
             <SelectItem value="true">Solo attivi</SelectItem>
             <SelectItem value="false">Solo inattivi</SelectItem>
           </SelectContent>
