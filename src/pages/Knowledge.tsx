@@ -3,14 +3,16 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KnowledgeList } from '@/components/knowledge/KnowledgeList';
 import { KnowledgeForm } from '@/components/knowledge/KnowledgeForm';
+import { BulkImportDialog } from '@/components/knowledge/BulkImportDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Upload } from 'lucide-react';
 import { useKnowledge } from '@/hooks/useKnowledge';
 import { knowledgeApi } from '@/lib/api';
 import type { KnowledgeItem } from '@/types';
 
 export default function Knowledge() {
   const [formOpen, setFormOpen] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<KnowledgeItem | null>(null);
   const [category, setCategory] = useState<string>('');
   const [isActive, setIsActive] = useState<boolean | undefined>(undefined);
@@ -31,6 +33,15 @@ export default function Knowledge() {
   const handleFormClose = () => {
     setFormOpen(false);
     setEditingItem(null);
+    refetch();
+  };
+
+  const handleBulkImport = () => {
+    setBulkImportOpen(true);
+  };
+
+  const handleBulkImportClose = () => {
+    setBulkImportOpen(false);
     refetch();
   };
 
@@ -72,6 +83,13 @@ export default function Knowledge() {
                 <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
                 {regenerating ? 'Rigenerando...' : 'Rigenera Embeddings'}
               </Button>
+              <Button
+                onClick={handleBulkImport}
+                variant="outline"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importa CSV/JSON
+              </Button>
               <Button onClick={handleCreate}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nuovo Documento
@@ -101,6 +119,11 @@ export default function Knowledge() {
           open={formOpen}
           item={editingItem}
           onClose={handleFormClose}
+        />
+
+        <BulkImportDialog
+          open={bulkImportOpen}
+          onClose={handleBulkImportClose}
         />
       </div>
     </DashboardLayout>

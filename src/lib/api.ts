@@ -93,7 +93,13 @@ export const knowledgeApi = {
   toggle: (id: string) =>
     api.patch(`/knowledge/${id}/toggle`).then(res => res.data),
 
-  bulkImport: (items: Array<{ question: string; answer: string; category?: string }>) =>
+  bulkImport: (items: Array<{
+    question?: string;
+    answer?: string;
+    title?: string;
+    content?: string;
+    category?: string
+  }>) =>
     api.post('/knowledge/bulk', { items }).then(res => res.data),
 
   regenerateEmbeddings: () =>

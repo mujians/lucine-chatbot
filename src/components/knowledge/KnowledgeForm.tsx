@@ -37,8 +37,9 @@ export function KnowledgeForm({ open, item, onClose }: KnowledgeFormProps) {
   }, [item, open]);
 
   const handleSubmit = async () => {
-    if (!question.trim() || !answer.trim()) {
-      alert('Domanda e risposta sono obbligatorie');
+    // Only content/answer is required, title/question is optional
+    if (!answer.trim()) {
+      alert('Il contenuto è obbligatorio');
       return;
     }
 
@@ -46,7 +47,7 @@ export function KnowledgeForm({ open, item, onClose }: KnowledgeFormProps) {
       setSubmitting(true);
 
       const data = {
-        question: question.trim(),
+        question: question.trim() || '', // Optional title
         answer: answer.trim(),
         category: category.trim() || undefined,
       };
@@ -73,19 +74,19 @@ export function KnowledgeForm({ open, item, onClose }: KnowledgeFormProps) {
           <DialogTitle>{item ? 'Modifica Documento' : 'Nuovo Documento'}</DialogTitle>
           <DialogDescription>
             {item
-              ? 'Modifica la domanda e la risposta del documento'
-              : 'Crea un nuovo documento per la knowledge base'}
+              ? 'Modifica il titolo e il contenuto del documento'
+              : 'Aggiungi informazioni alla knowledge base. Il titolo è opzionale.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div>
             <label htmlFor="question" className="text-sm font-medium mb-2 block">
-              Domanda *
+              Titolo <span className="text-muted-foreground font-normal">(opzionale)</span>
             </label>
             <Textarea
               id="question"
-              placeholder="Es: Come posso modificare il mio ordine?"
+              placeholder="Es: Informazioni sulla spedizione, Orari di apertura, etc."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={2}
@@ -94,14 +95,14 @@ export function KnowledgeForm({ open, item, onClose }: KnowledgeFormProps) {
 
           <div>
             <label htmlFor="answer" className="text-sm font-medium mb-2 block">
-              Risposta *
+              Contenuto *
             </label>
             <Textarea
               id="answer"
-              placeholder="Fornisci una risposta dettagliata..."
+              placeholder="Inserisci il contenuto completo del documento, informazioni, dettagli, etc..."
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              rows={6}
+              rows={8}
             />
           </div>
 
@@ -126,7 +127,7 @@ export function KnowledgeForm({ open, item, onClose }: KnowledgeFormProps) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !question.trim() || !answer.trim()}
+            disabled={submitting || !answer.trim()}
           >
             {submitting ? 'Salvo...' : item ? 'Salva Modifiche' : 'Crea Documento'}
           </Button>

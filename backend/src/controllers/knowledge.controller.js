@@ -91,23 +91,26 @@ export const createKnowledgeItem = async (req, res) => {
   try {
     const { question, answer, category } = req.body;
 
-    if (!question || !answer) {
+    // Only answer is required, question is optional (for document-style entries)
+    if (!answer) {
       return res.status(400).json({
-        error: { message: 'Question and answer are required' },
+        error: { message: 'Content (answer) is required' },
       });
     }
 
     // Generate embedding (async, don't wait for it)
     let embedding = null;
     try {
-      embedding = await generateEmbedding(question + ' ' + answer);
+      // Use question + answer if both present, otherwise just answer
+      const textForEmbedding = question ? question + ' ' + answer : answer;
+      embedding = await generateEmbedding(textForEmbedding);
     } catch (error) {
       console.warn('Failed to generate embedding:', error);
     }
 
     const item = await prisma.knowledgeItem.create({
       data: {
-        question,
+        question: question || '',
         answer,
         category: category || 'ALTRO',
         isActive: true,
@@ -152,13 +155,18 @@ export const updateKnowledgeItem = async (req, res) => {
     if (isActive !== undefined) updateData.isActive = isActive;
 
     // Re-generate embedding if question or answer changed
-    if (question || answer) {
+    if (question !== undefined || answer !== undefined) {
       try {
         const item = await prisma.knowledgeItem.findUnique({
           where: { id: itemId },
         });
-        const newText =
-          (question || item.question) + ' ' + (answer || item.answer);
+        const finalQuestion = question !== undefined ? question : item.question;
+        const finalAnswer = answer !== undefined ? answer : item.answer;
+
+        // Use question + answer if question exists, otherwise just answer
+        const newText = finalQuestion
+          ? finalQuestion + ' ' + finalAnswer
+          : finalAnswer;
         const embedding = await generateEmbedding(newText);
         updateData.embedding = embedding;
       } catch (error) {
@@ -267,23 +275,28 @@ export const bulkImportKnowledge = async (req, res) => {
     const results = [];
 
     for (const item of items) {
-      if (!item.question || !item.answer) {
-        continue; // Skip invalid items
+      // Only answer/content is required, question/title is optional
+      if (!item.answer && !item.content) {
+        continue; // Skip items without content
       }
 
       try {
+        const question = item.question || item.title || '';
+        const answer = item.answer || item.content;
+
         // Generate embedding for this item
         let embedding = null;
         try {
-          embedding = await generateEmbedding(item.question + ' ' + item.answer);
+          const textForEmbedding = question ? question + ' ' + answer : answer;
+          embedding = await generateEmbedding(textForEmbedding);
         } catch (error) {
-          console.warn(`Failed to generate embedding for item: ${item.question}`, error);
+          console.warn(`Failed to generate embedding for item: ${question || answer.substring(0, 50)}`, error);
         }
 
         const created = await prisma.knowledgeItem.create({
           data: {
-            question: item.question,
-            answer: item.answer,
+            question: question,
+            answer: answer,
             category: item.category || 'ALTRO',
             isActive: true,
             createdBy: req.operator.id,
@@ -292,7 +305,7 @@ export const bulkImportKnowledge = async (req, res) => {
         });
         results.push(created);
       } catch (error) {
-        console.error(`Failed to create item: ${item.question}`, error);
+        console.error(`Failed to create item: ${item.question || item.title || 'no title'}`, error);
       }
     }
 
