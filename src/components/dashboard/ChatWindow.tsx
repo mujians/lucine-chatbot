@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, ArrowRightLeft, Archive, Flag, XCircle } from 'lucide-react';
+import { Send, X, Archive, Flag, XCircle } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
