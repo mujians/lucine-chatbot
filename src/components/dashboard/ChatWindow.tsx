@@ -258,6 +258,20 @@ export function ChatWindow({
             </>
           )}
 
+          {/* Archive button for CLOSED chats */}
+          {selectedChat.status === 'CLOSED' && !selectedChat.isArchived && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleArchive}
+              disabled={actionLoading}
+              title="Archivia chat chiusa"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archivia
+            </Button>
+          )}
+
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
           </Button>
