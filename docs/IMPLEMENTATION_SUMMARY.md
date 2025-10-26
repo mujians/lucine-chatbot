@@ -852,6 +852,76 @@ git push origin main
 
 ---
 
+## Bug Fix Log
+
+### 26/10/2025 - P0 Critical: Config Incompleto - AI Non Funzionante
+
+**Issue**: `backend/src/config/index.js` era INCOMPLETO - mancavano sezioni critiche per OpenAI, Knowledge Base, Session
+
+**Impact**:
+- 🔴 **CRITICO** - AI completamente non funzionante
+- OpenAI API riceveva `model: undefined` → errori API
+- Embeddings generation falliva (embeddingModel undefined)
+- Confidence threshold undefined → operator suggestion logic rotto
+- Session timeouts non configurati
+
+**Root Cause**:
+- Config ridotto durante migrazione da BACKUP a production
+- Solo `openaiApiKey` presente, tutto il resto mancante
+
+**Fix**:
+- Ripristinato config completo da `BACKUP-chatbot-lucy-2025-20251021/backend/src/config/index.js`
+
+**Sections Ripristinate**:
+```javascript
+// OpenAI (MANCAVANO TUTTI QUESTI)
+openai: {
+  model: 'gpt-4-turbo-preview',          // ✅ RESTORED
+  embeddingModel: 'text-embedding-3-small', // ✅ RESTORED
+  temperature: 0.7,                       // ✅ RESTORED
+  maxTokens: 500,                         // ✅ RESTORED
+},
+
+// Knowledge Base (NUOVO)
+kb: {
+  confidenceThreshold: 0.7,               // ✅ ADDED
+  maxResults: 5,                          // ✅ ADDED
+},
+
+// Session (NUOVO)
+session: {
+  ttlHours: 24,                           // ✅ ADDED
+  chatTimeoutMinutes: 5,                  // ✅ ADDED
+  operatorTimeoutSeconds: 30,             // ✅ ADDED
+},
+
+// Email (COMPLETATO)
+email: {
+  from: 'noreply@lucine.it',             // ✅ ADDED
+  smtp: { ... }                           // ✅ STRUCTURED
+},
+
+// URLs (NUOVO)
+urls: {
+  shopify, widget, dashboard              // ✅ ADDED
+}
+```
+
+**Files Modified**:
+- `backend/src/config/index.js` - Restored complete config
+- `docs/QA_FINDINGS.md` - Documented P0 issue
+- `docs/IMPLEMENTATION_SUMMARY.md` - Added Bug Fix Log
+
+**Testing Required**:
+- [ ] Verify AI responses work after restart
+- [ ] Verify embeddings generation works
+- [ ] Verify operator suggestion triggers correctly
+- [ ] Check all config values load without errors
+
+**Commit**: `fix: restore complete backend config - fixes P0 AI broken`
+
+---
+
 **Ultimo aggiornamento**: 26 Ottobre 2025
 **Maintained by**: Claude Code
 
