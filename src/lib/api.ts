@@ -68,7 +68,7 @@ export const ticketsApi = {
 
 export const knowledgeApi = {
   getAll: (params?: { category?: string; isActive?: boolean }) =>
-    api.get('/knowledge', { params }).then(res => res.data),
+    api.get('/knowledge', { params }).then(res => res.data.data),
 
   getById: (id: string) =>
     api.get(`/knowledge/${id}`).then(res => res.data),
