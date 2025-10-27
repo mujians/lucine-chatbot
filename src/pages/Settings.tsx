@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SettingsSection } from '@/components/settings/SettingsSection';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { settingsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -271,7 +272,6 @@ export default function Settings() {
           }
         />
 
-        <div className="space-y-6">
         {error && (
           <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3">
             {error}
@@ -284,6 +284,14 @@ export default function Settings() {
           </div>
         )}
 
+        <Tabs defaultValue="generale" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="generale">Generale</TabsTrigger>
+            <TabsTrigger value="integrazioni">Integrazioni</TabsTrigger>
+            <TabsTrigger value="widget">Widget</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="generale" className="space-y-6">
         {/* AI Settings */}
         <SettingsSection
           title="Intelligenza Artificiale"
@@ -337,7 +345,9 @@ export default function Settings() {
             },
           ]}
         />
+          </TabsContent>
 
+          <TabsContent value="integrazioni" className="space-y-6">
         {/* WhatsApp Settings */}
         <SettingsSection
           title="WhatsApp (Twilio)"
@@ -437,7 +447,9 @@ export default function Settings() {
             </div>
           }
         />
+          </TabsContent>
 
+          <TabsContent value="widget" className="space-y-6">
         {/* Widget Colors */}
         <SettingsSection
           title="Widget - Colori"
@@ -697,7 +709,8 @@ export default function Settings() {
             },
           ]}
         />
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
