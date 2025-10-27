@@ -6,12 +6,19 @@ import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Archive, Flag } from 'lucide-react';
+import { Search, X, Archive, Flag, Download } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/api';
 import type { ChatSession } from '@/types';
 import { notificationService } from '@/services/notification.service';
+import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
 export default function Index() {
   const [chats, setChats] = useState<ChatSession[]>([]);
@@ -484,6 +491,34 @@ export default function Index() {
                 </div>
               </div>
               <div className="flex gap-1 mt-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={bulkActionLoading}
+                      className="flex-1"
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Esporta
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => {
+                      const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
+                      exportChatsToCSV(selectedChats);
+                    }}>
+                      Esporta CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
+                      exportChatsToJSON(selectedChats);
+                    }}>
+                      Esporta JSON
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Button
                   size="sm"
                   variant="outline"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, Archive, Flag, XCircle } from 'lucide-react';
+import { Send, X, Archive, Flag, XCircle, Download } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +12,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { chatApi, operatorsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { QuickReplyPicker } from './QuickReplyPicker';
+import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
 interface ChatWindowProps {
   selectedChat?: ChatSession | null;
@@ -221,6 +228,28 @@ export function ChatWindow({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Export dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                title="Esporta cronologia chat"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Esporta
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => exportChatsToCSV([selectedChat])}>
+                Esporta CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportChatsToJSON([selectedChat])}>
+                Esporta JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {selectedChat.status !== 'CLOSED' && (
             <>
               <Button
