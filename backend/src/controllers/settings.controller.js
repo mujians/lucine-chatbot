@@ -197,7 +197,6 @@ export const getPublicSettings = async (req, res) => {
       'widgetPosition',
       'widgetGreeting',
       'widgetTitle',
-      'widgetSubtitle',
     ];
 
     const settings = await prisma.systemSettings.findMany({
@@ -229,7 +228,6 @@ export const getPublicSettings = async (req, res) => {
       position: settingsMap.widgetPosition || 'bottom-right',
       greeting: settingsMap.widgetGreeting || 'Ciao! Come possiamo aiutarti?',
       title: settingsMap.widgetTitle || 'Chat con noi',
-      subtitle: settingsMap.widgetSubtitle || 'Siamo qui per aiutarti',
       version: lastUpdated.getTime(), // Timestamp for cache busting
     };
 

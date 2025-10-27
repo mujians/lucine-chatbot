@@ -40,7 +40,6 @@ interface SettingsState {
   // Widget Layout
   widgetPosition: string;
   widgetTitle: string;
-  widgetSubtitle: string;
 
   // Widget Messages - Initial
   widgetGreeting: string;
@@ -101,7 +100,6 @@ const defaultSettings: SettingsState = {
   // Widget Layout
   widgetPosition: 'bottom-right',
   widgetTitle: 'LUCY - ASSISTENTE VIRTUALE',
-  widgetSubtitle: 'Chiedimi quello che vuoi sapere.',
 
   // Widget Messages - Initial
   widgetGreeting: 'Ciao! Sono Lucy, il tuo assistente virtuale. Come posso aiutarti?',
@@ -538,14 +536,6 @@ export default function Settings() {
               onChange: (value) => handleChange('widgetTitle', value),
               placeholder: 'LUCY - ASSISTENTE VIRTUALE',
               description: 'Titolo mostrato nell\'header del widget',
-            },
-            {
-              label: 'Sottotitolo',
-              type: 'text',
-              value: settings.widgetSubtitle,
-              onChange: (value) => handleChange('widgetSubtitle', value),
-              placeholder: 'Chiedimi quello che vuoi sapere.',
-              description: 'Sottotitolo mostrato sotto il titolo',
             },
           ]}
         />
