@@ -21,6 +21,8 @@ export default function Index() {
   const [showArchived, setShowArchived] = useState(false);
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const { socket, connected } = useSocket();
   const { operator, logout } = useAuth();
@@ -303,6 +305,86 @@ export default function Index() {
     }
   };
 
+  const handleToggleChatSelection = (chatId: string) => {
+    setSelectedChatIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(chatId)) {
+        newSet.delete(chatId);
+      } else {
+        newSet.add(chatId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllChats = () => {
+    setSelectedChatIds(new Set(chats.map(chat => chat.id)));
+  };
+
+  const handleDeselectAllChats = () => {
+    setSelectedChatIds(new Set());
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedChatIds.size === 0 || !confirm(`Archiviare ${selectedChatIds.size} chat?`)) return;
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        Array.from(selectedChatIds).map(id => chatApi.archiveSession(id))
+      );
+      loadChats();
+      setSelectedChatIds(new Set());
+    } catch (error) {
+      console.error('Bulk archive error:', error);
+      alert('Errore durante l\'archiviazione multipla');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedChatIds.size === 0 || !confirm(`Eliminare DEFINITIVAMENTE ${selectedChatIds.size} chat?`)) return;
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        Array.from(selectedChatIds).map(id => chatApi.deleteSession(id))
+      );
+      loadChats();
+      setSelectedChatIds(new Set());
+      if (selectedChat && selectedChatIds.has(selectedChat.id)) {
+        setSelectedChat(null);
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      alert('Errore durante l\'eliminazione multipla');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkClose = async () => {
+    if (selectedChatIds.size === 0 || !confirm(`Chiudere ${selectedChatIds.size} chat?`)) return;
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        Array.from(selectedChatIds).map(id => chatApi.closeSession(id))
+      );
+      loadChats();
+      setSelectedChatIds(new Set());
+      if (selectedChat && selectedChatIds.has(selectedChat.id)) {
+        setSelectedChat(null);
+      }
+    } catch (error) {
+      console.error('Bulk close error:', error);
+      alert('Errore durante la chiusura multipla');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -375,13 +457,73 @@ export default function Index() {
             <p className="text-sm text-muted-foreground">{chats.length} chat</p>
           </div>
 
+          {/* Bulk actions bar */}
+          {selectedChatIds.size > 0 && (
+            <div className="p-3 border-b bg-accent/50">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">
+                  {selectedChatIds.size} selezionate
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSelectAllChats}
+                    disabled={bulkActionLoading}
+                  >
+                    Tutte
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDeselectAllChats}
+                    disabled={bulkActionLoading}
+                  >
+                    Nessuna
+                  </Button>
+                </div>
+              </div>
+              <div className="flex gap-1 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleBulkClose}
+                  disabled={bulkActionLoading}
+                  className="flex-1"
+                >
+                  Chiudi
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleBulkArchive}
+                  disabled={bulkActionLoading}
+                  className="flex-1"
+                >
+                  Archivia
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  disabled={bulkActionLoading}
+                  className="flex-1"
+                >
+                  Elimina
+                </Button>
+              </div>
+            </div>
+          )}
+
           <ChatListPanel
             chats={chats}
             selectedChatId={selectedChat?.id}
+            selectedChatIds={selectedChatIds}
             onSelectChat={handleSelectChat}
             onDeleteChat={handleDeleteChat}
             onArchiveChat={handleArchiveChat}
             onFlagChat={handleFlagChat}
+            onToggleChatSelection={handleToggleChatSelection}
           />
         </div>
 

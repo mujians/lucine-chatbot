@@ -3,6 +3,7 @@ import type { ChatSession } from '@/types';
 import { ChatStatus } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,10 +18,12 @@ import { it } from 'date-fns/locale';
 interface ChatListPanelProps {
   chats?: ChatSession[];
   selectedChatId?: string;
+  selectedChatIds?: Set<string>;
   onSelectChat?: (chat: ChatSession) => void;
   onDeleteChat?: (chat: ChatSession) => void;
   onArchiveChat?: (chat: ChatSession) => void;
   onFlagChat?: (chat: ChatSession) => void;
+  onToggleChatSelection?: (chatId: string) => void;
 }
 
 const getStatusIcon = (status: ChatStatus) => {
@@ -68,7 +71,7 @@ const getStatusLabel = (status: ChatStatus) => {
   }
 };
 
-export function ChatListPanel({ chats = [], selectedChatId, onSelectChat, onDeleteChat, onArchiveChat, onFlagChat }: ChatListPanelProps) {
+export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onSelectChat, onDeleteChat, onArchiveChat, onFlagChat, onToggleChatSelection }: ChatListPanelProps) {
   return (
     <ScrollArea className="flex-1">
       <div className="p-2">
@@ -87,9 +90,25 @@ export function ChatListPanel({ chats = [], selectedChatId, onSelectChat, onDele
                     : "hover:bg-accent/50 border-transparent"
                 )}
               >
+                {/* Checkbox for bulk selection */}
+                {onToggleChatSelection && (
+                  <div
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedChatIds?.has(chat.id) || false}
+                      onCheckedChange={() => onToggleChatSelection(chat.id)}
+                    />
+                  </div>
+                )}
+
                 <button
                   onClick={() => onSelectChat?.(chat)}
-                  className="w-full p-3 text-left"
+                  className={cn(
+                    "w-full p-3 text-left",
+                    onToggleChatSelection && "pl-10"
+                  )}
                 >
                   <div className="flex items-start justify-between mb-1 pr-8">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
