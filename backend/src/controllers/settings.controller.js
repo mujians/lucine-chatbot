@@ -1,4 +1,6 @@
 import { prisma } from '../server.js';
+import { emailService } from '../services/email.service.js';
+import { twilioService } from '../services/twilio.service.js';
 
 /**
  * Get all system settings
@@ -231,6 +233,106 @@ export const getPublicSettings = async (req, res) => {
     console.error('Get public settings error:', error);
     res.status(500).json({
       error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * Test email connection (SMTP)
+ * POST /api/settings/test-email
+ * Body: { to?: string } - optional test email address (defaults to operator's email)
+ */
+export const testEmailConnection = async (req, res) => {
+  try {
+    const { to } = req.body;
+    const testEmail = to || req.operator.email;
+
+    if (!testEmail) {
+      return res.status(400).json({
+        error: { message: 'Test email address required' },
+      });
+    }
+
+    // Test sending email
+    const result = await emailService.sendEmail({
+      to: testEmail,
+      subject: 'Test Email from Lucine Chatbot',
+      text: `This is a test email sent at ${new Date().toISOString()}.\n\nIf you received this, your SMTP configuration is working correctly!`,
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test email sent successfully',
+        data: {
+          recipient: testEmail,
+          messageId: result.messageId,
+        },
+      });
+    } else {
+      res.status(500).json({
+        error: {
+          message: 'Failed to send test email',
+          details: result.error,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Test email connection error:', error);
+    res.status(500).json({
+      error: {
+        message: 'Email connection test failed',
+        details: error.message,
+      },
+    });
+  }
+};
+
+/**
+ * Test WhatsApp connection (Twilio)
+ * POST /api/settings/test-whatsapp
+ * Body: { to: string } - WhatsApp number to test (required)
+ */
+export const testWhatsAppConnection = async (req, res) => {
+  try {
+    const { to } = req.body;
+
+    if (!to) {
+      return res.status(400).json({
+        error: { message: 'Test WhatsApp number required' },
+      });
+    }
+
+    // Test sending WhatsApp message
+    const result = await twilioService.sendWhatsAppMessage(
+      to,
+      `Test message from Lucine Chatbot sent at ${new Date().toISOString()}. If you received this, your Twilio configuration is working correctly!`
+    );
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test WhatsApp message sent successfully',
+        data: {
+          recipient: to,
+          sid: result.sid,
+        },
+      });
+    } else {
+      res.status(500).json({
+        error: {
+          message: 'Failed to send test WhatsApp message',
+          details: result.error,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Test WhatsApp connection error:', error);
+    res.status(500).json({
+      error: {
+        message: 'WhatsApp connection test failed',
+        details: error.message,
+      },
     });
   }
 };

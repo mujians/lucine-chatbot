@@ -161,6 +161,12 @@ export const settingsApi = {
 
   delete: (key: string) =>
     api.delete(`/settings/${key}`).then(res => res.data),
+
+  testEmail: (to?: string) =>
+    api.post('/settings/test-email', { to }).then(res => res.data),
+
+  testWhatsApp: (to: string) =>
+    api.post('/settings/test-whatsapp', { to }).then(res => res.data),
 };
 
 // ============================================

@@ -24,9 +24,10 @@ interface SettingsSectionProps {
   title: string;
   description: string;
   fields: SettingsField[];
+  actions?: React.ReactNode; // Optional actions (e.g., test buttons)
 }
 
-export function SettingsSection({ title, description, fields }: SettingsSectionProps) {
+export function SettingsSection({ title, description, fields, actions }: SettingsSectionProps) {
   const renderField = (field: SettingsField) => {
     switch (field.type) {
       case 'select':
@@ -114,6 +115,12 @@ export function SettingsSection({ title, description, fields }: SettingsSectionP
           </div>
         ))}
       </div>
+
+      {actions && (
+        <div className="mt-4 pt-4 border-t border-border">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

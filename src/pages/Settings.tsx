@@ -135,6 +135,12 @@ export default function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Test connection states
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testingWhatsApp, setTestingWhatsApp] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState<string | null>(null);
+  const [whatsAppTestResult, setWhatsAppTestResult] = useState<string | null>(null);
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -209,6 +215,35 @@ export default function Settings() {
       setError('Errore durante il salvataggio delle impostazioni');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    try {
+      setTestingEmail(true);
+      setEmailTestResult(null);
+      const result = await settingsApi.testEmail();
+      setEmailTestResult(`✓ Test email inviata con successo a ${result.data.recipient}`);
+    } catch (error: any) {
+      setEmailTestResult(`✗ Errore: ${error.response?.data?.error?.message || 'Test fallito'}`);
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  const handleTestWhatsApp = async () => {
+    const phoneNumber = prompt('Inserisci il numero WhatsApp per il test (es: +393001234567):');
+    if (!phoneNumber) return;
+
+    try {
+      setTestingWhatsApp(true);
+      setWhatsAppTestResult(null);
+      const result = await settingsApi.testWhatsApp(phoneNumber);
+      setWhatsAppTestResult(`✓ Messaggio inviato con successo a ${result.data.recipient}`);
+    } catch (error: any) {
+      setWhatsAppTestResult(`✗ Errore: ${error.response?.data?.error?.message || 'Test fallito'}`);
+    } finally {
+      setTestingWhatsApp(false);
     }
   };
 
@@ -329,6 +364,21 @@ export default function Settings() {
               placeholder: 'whatsapp:+14155238886',
             },
           ]}
+          actions={
+            <div className="space-y-2">
+              <Button
+                onClick={handleTestWhatsApp}
+                disabled={testingWhatsApp}
+                variant="outline"
+                size="sm"
+              >
+                {testingWhatsApp ? 'Invio in corso...' : 'Testa Connessione WhatsApp'}
+              </Button>
+              {whatsAppTestResult && (
+                <p className="text-sm text-muted-foreground">{whatsAppTestResult}</p>
+              )}
+            </div>
+          }
         />
 
         {/* Email Settings */}
@@ -371,6 +421,21 @@ export default function Settings() {
               placeholder: 'noreply@lucinedinatale.it',
             },
           ]}
+          actions={
+            <div className="space-y-2">
+              <Button
+                onClick={handleTestEmail}
+                disabled={testingEmail}
+                variant="outline"
+                size="sm"
+              >
+                {testingEmail ? 'Invio in corso...' : 'Testa Connessione Email'}
+              </Button>
+              {emailTestResult && (
+                <p className="text-sm text-muted-foreground">{emailTestResult}</p>
+              )}
+            </div>
+          }
         />
 
         {/* Widget Colors */}
