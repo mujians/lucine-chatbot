@@ -277,20 +277,35 @@
 
 ### 🔴 P0 - Blockers (Fix Immediately)
 
-1. **OpenAI config completamente rotto - AI NON FUNZIONA**
+1. **OpenAI config completamente rotto - AI NON FUNZIONA** ✅ FIXED
    - File: `backend/src/config/index.js`
    - Impact: **CRITICO - AI completamente non funzionante, errori API**
    - Root Cause: Config incompleto durante migrazione da BACKUP
-   - Fix: Ripristinare config completo da `BACKUP-chatbot-lucy-2025-20251021/backend/src/config/index.js`
-   - Sections mancanti:
-     - `openai.model` → undefined causa errore OpenAI API
-     - `openai.embeddingModel` → embeddings generation fallisce
-     - `openai.temperature` → undefined
-     - `openai.maxTokens` → undefined
-     - `kb.confidenceThreshold` → operator suggestion logic rotto
-     - `kb.maxResults` → undefined
-     - `session.*` → timeout configs mancanti
-     - `email.*` → SMTP config incompleta
+   - Fix: Ripristinato config completo da `BACKUP-chatbot-lucy-2025-20251021/backend/src/config/index.js`
+   - Status: ✅ **RISOLTO** (26/10/2025)
+
+2. **Notification Service Mancante - Backend Crash su Ticket Creation** ✅ FIXED
+   - File: `backend/src/controllers/ticket.controller.js:3`
+   - Impact: **CRITICO - Backend crashava su qualsiasi ticket creation o chat→ticket conversion**
+   - Root Cause: Import di file inesistente `notification.service.js`
+   - Bug:
+     ```javascript
+     // ❌ BROKEN CODE
+     import { sendWhatsAppNotification, sendEmailNotification } from '../services/notification.service.js';
+     // File notification.service.js NON ESISTE!
+     ```
+   - Fix Applicato:
+     ```javascript
+     // ✅ FIXED
+     import { emailService } from '../services/email.service.js';
+     import { twilioService } from '../services/twilio.service.js';
+
+     // 4 call sites sostituiti:
+     await twilioService.sendWhatsAppMessage(phone, message);
+     await emailService.sendEmail({ to, subject, text });
+     ```
+   - Commit: `fix: P0 critical - replace missing notification service`
+   - Status: ✅ **RISOLTO** (27/10/2025)
 
 ### 🟠 P1 - High Priority
 
