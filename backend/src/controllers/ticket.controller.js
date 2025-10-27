@@ -1,6 +1,7 @@
 import { prisma } from '../server.js';
 import { io } from '../server.js';
-import { sendWhatsAppNotification, sendEmailNotification } from '../services/notification.service.js';
+import { emailService } from '../services/email.service.js';
+import { twilioService } from '../services/twilio.service.js';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -70,16 +71,16 @@ export const createTicket = async (req, res) => {
 
     // Send notification based on contact method
     if (contactMethod === 'WHATSAPP') {
-      await sendWhatsAppNotification(
+      await twilioService.sendWhatsAppMessage(
         whatsappNumber,
         `Ciao ${userName}! Abbiamo ricevuto la tua richiesta. Ti ricontatteremo presto. Clicca qui per riprendere: ${resumeUrl}`
       );
     } else if (contactMethod === 'EMAIL') {
-      await sendEmailNotification(
-        email,
-        'La tua richiesta Lucine di Natale',
-        `Ciao ${userName},\n\nAbbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nPuoi riprendere la conversazione qui: ${resumeUrl}\n\nGrazie!`
-      );
+      await emailService.sendEmail({
+        to: email,
+        subject: 'La tua richiesta Lucine di Natale',
+        text: `Ciao ${userName},\n\nAbbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nPuoi riprendere la conversazione qui: ${resumeUrl}\n\nGrazie!`
+      });
     }
 
     // Notify all operators
@@ -422,16 +423,16 @@ export const convertChatToTicket = async (req, res) => {
 
     // Send notification
     if (contactMethod === 'WHATSAPP') {
-      await sendWhatsAppNotification(
+      await twilioService.sendWhatsAppMessage(
         whatsappNumber,
         `Ciao! Abbiamo ricevuto la tua richiesta. Ti risponderemo presto. Riprendi qui: ${resumeUrl}`
       );
     } else if (contactMethod === 'EMAIL') {
-      await sendEmailNotification(
-        email,
-        'La tua richiesta Lucine di Natale',
-        `Abbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nRiprendi qui: ${resumeUrl}`
-      );
+      await emailService.sendEmail({
+        to: email,
+        subject: 'La tua richiesta Lucine di Natale',
+        text: `Abbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nRiprendi qui: ${resumeUrl}`
+      });
     }
 
     // Notify dashboard
