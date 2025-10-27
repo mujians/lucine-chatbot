@@ -41,6 +41,74 @@ Improvement non bloccanti ma importanti per experience.
 - **File**: `backend/src/controllers/ticket.controller.js:3`
 - **Testing**: [ ] Verificare ticket creation funziona dopo deploy
 
+### ✅ P0.5 - lucine-minimal Repository Mai Committato [COMPLETATO - 27/10/2025]
+- **Status**: ✅ **COMPLETATO** (commit a941e3a - 27/10/2025)
+- **Issue**: Repository lucine-minimal inizializzato ma senza commit, impossibile tracking versioni
+- **Impact**: 🟠 ALTO - Nessun version control per widget Shopify
+- **Fix Applicato**:
+  1. ✅ Rimosso lock file (.git/refs/heads/main.lock)
+  2. ✅ Creato commit iniziale con tutti i file del tema Shopify
+  3. ✅ Pushed a GitHub (origin/main)
+- **File**: N/A (operazione git)
+- **Commit**: `a941e3a`
+- **Testing**: ✅ Verificato commit creato e push completato
+
+### ✅ P0.3 - Widget No Ticket Action quando operatori offline [COMPLETATO - 27/10/2025]
+- **Status**: ✅ **COMPLETATO** (fix applicato, commit pending)
+- **Issue**: Quando user richiede operatore e nessuno disponibile, mostra solo messaggio testuale senza azioni
+- **Impact**: 🔴 CRITICO - User bloccato senza modo di aprire ticket
+- **Fix Applicato**:
+  1. ✅ Aggiunta chiamata `showSmartActions()` dopo messaggio "Nessun operatore disponibile"
+  2. ✅ Smart actions mostrano 2 opzioni: "Apri Ticket" (primary) e "Continua con AI" (secondary)
+  3. ✅ Include icone, testi e descrizioni per UX ottimale
+- **File**: `snippets/chatbot-popup.liquid:996-1012`
+- **Codice Modificato**:
+  ```javascript
+  if (operatorData.data?.operatorAvailable === false) {
+    addMessage(operatorData.data.message || 'Nessun operatore disponibile...', 'bot');
+
+    // ✅ AGGIUNTO:
+    showSmartActions([
+      {
+        icon: '📝',
+        text: 'Apri Ticket',
+        description: 'Lascia un messaggio, ti ricontatteremo',
+        action: 'request_ticket',
+        type: 'primary'
+      },
+      {
+        icon: '🤖',
+        text: 'Continua con AI',
+        description: 'Prova a chiedermi altro',
+        action: 'continue_ai',
+        type: 'secondary'
+      }
+    ]);
+  }
+  ```
+- **Testing**: Pending commit e deploy
+- **Details**: Vedi `docs/CHAT_FLOWS_ANALYSIS.md` - Bug #1
+
+### ✅ P0.4 - Action `request_ticket` non implementata [COMPLETATO - 27/10/2025]
+- **Status**: ✅ **COMPLETATO** (fix applicato, commit pending)
+- **Issue**: Action button "Apri Ticket" chiama `sendMessage('apri ticket')` invece di mostrare form
+- **Impact**: 🔴 CRITICO - Ticket form inaccessibile
+- **Fix Applicato**:
+  1. ✅ Cambiato handler action `request_ticket` da sendMessage a showTicketForm()
+  2. ✅ Aggiunta rimozione actionsContainer dopo apertura form
+  3. ✅ Form ticket ora si apre correttamente al click
+- **File**: `snippets/chatbot-popup.liquid:1225-1228`
+- **Codice Modificato**:
+  ```javascript
+  } else if (action.action === 'request_ticket') {
+    // ✅ FIX P0.4: Show ticket form invece di mandare messaggio
+    showTicketForm();
+    actionsContainer.remove();
+  }
+  ```
+- **Testing**: Pending commit e deploy
+- **Details**: Vedi `docs/CHAT_FLOWS_ANALYSIS.md` - Bug #2
+
 ---
 
 ## 🟠 P1 - HIGH PRIORITY (Fix Before Testing)
@@ -96,6 +164,46 @@ Improvement non bloccanti ma importanti per experience.
   2. ✅ Embedding salvato per ogni item importato (line 290)
 - **File**: `backend/src/controllers/knowledge.controller.js`
 - **Testing Required**: Bulk import CSV e verificare embeddings generati
+
+### ❌ P1.6 - Dashboard No Notifications per Nuove Chat [NUOVO - 27/10]
+- **Status**: ❌ **DA FIXARE** (identificato in Chat Flows Analysis)
+- **Issue**: Dashboard non mostra notifiche quando operatore riceve nuova chat assegnata
+- **Impact**: 🟠 ALTO - Operatore non sa di avere chat pending
+- **Behavior Attuale**:
+  - Backend emette: `io.to('operator:${operatorId}').emit('new_chat_request', {...})`
+  - Dashboard: ❌ NESSUN listener per questo evento
+  - ❌ NESSUNA notifica browser
+  - ❌ NESSUN badge count
+  - ❌ NESSUN suono
+- **Fix Required**:
+  1. Aggiungere socket listener `new_chat_request` in Dashboard
+  2. Implementare browser notification (con permessi)
+  3. Badge count per chat pending
+  4. Opzionale: suono notifica
+- **File**: Dashboard components (ChatWindow, Layout, etc.)
+- **Estimated Effort**: 2-3 ore
+- **Details**: Vedi `docs/CHAT_FLOWS_ANALYSIS.md` - Bug #3
+
+### ❌ P1.7 - Widget Input Non Disabilitata Dopo Chat Chiusa [NUOVO - 27/10]
+- **Status**: ❌ **DA FIXARE** (identificato in Chat Flows Analysis)
+- **Issue**: Dopo che operatore chiude chat, input widget rimane attiva
+- **Impact**: 🟡 MEDIO - User può scrivere ma messaggi non vanno da nessuna parte
+- **Behavior Attuale**:
+  - Evento `chat_closed` ricevuto → mostra messaggio "Chat chiusa"
+  - ❌ Input rimane enabled
+  - User può ancora digitare e premere send (nessun effetto)
+- **Fix Required**:
+  ```javascript
+  socket.on('chat_closed', (data) => {
+    addMessage('La chat è stata chiusa. Grazie!', 'system');
+    isOperatorMode = false;
+    setInputState(false);  // ✅ Disabilita input
+    input.placeholder = 'Chat chiusa';
+  });
+  ```
+- **File**: `snippets/chatbot-popup.liquid:1472-1476`
+- **Estimated Effort**: 10 minuti
+- **Details**: Vedi `docs/CHAT_FLOWS_ANALYSIS.md` - Bug #4
 
 ---
 

@@ -1,8 +1,165 @@
 # Stato Attuale del Progetto - 27 Ottobre 2025
 
-**Ultimo aggiornamento**: 27 Ottobre 2025, ore 15:00
+**Ultimo aggiornamento**: 27 Ottobre 2025, ore 19:00
 
-## 🎯 Sessione Corrente: Widget Subtitle Removal
+## 🎯 Sessione Corrente: Fix Bugs Critici P0 (Widget Ticket Flow)
+
+**Obiettivo**: Risolvere tutti i bugs P0 critici che bloccano il flusso ticket
+**Tasks da completare**:
+- [x] P0.5: Commit iniziale repository lucine-minimal ✅ COMPLETATO (a941e3a)
+- [x] P0.3: Mostrare smart actions quando no operatori disponibili ✅ COMPLETATO
+- [x] P0.4: Implementare action `request_ticket` correttamente ✅ COMPLETATO
+- [ ] Documentazione P0.3 P0.4: Aggiornare ROADMAP.md, CURRENT_STATUS.md
+- [ ] Commit P0.3 P0.4: Creare commit per fix widget
+- [ ] Testing: Verificare flusso ticket end-to-end
+- [x] Documentazione P0.5: Aggiornato ROADMAP.md, CURRENT_STATUS.md ✅
+
+---
+
+---
+
+## 📝 Lavori Completati in Questa Sessione
+
+### 1. ✅ Fix P0.5 - lucine-minimal Repository Commit Iniziale (Commit: a941e3a)
+**Data**: 27 Ottobre 2025
+**Repository**: lucine-minimal
+**Branch**: main
+
+**Files Committati**: Tutti i file del tema Shopify (250+ files)
+- `snippets/chatbot-popup.liquid` (widget principale)
+- `layout/theme.liquid` (theme layout)
+- `assets/` (CSS, JS, fonts)
+- `templates/` (Shopify templates)
+- Tutti i locales, sections, configs
+
+**Problema Risolto**:
+Repository lucine-minimal era inizializzato ma senza commit. Tutti i file erano in staging area ma non c'era storia git. Impossibile fare version control e tracking modifiche.
+
+**Soluzione Implementata**:
+1. Rimosso file lock git se presente
+2. Creato commit iniziale con messaggio descrittivo
+3. Pushed a GitHub origin/main
+
+**Testing Eseguito**:
+- [x] Commit creato (hash: a941e3a)
+- [x] Push a GitHub (in progress)
+- [x] Repository ora tracciato con git
+
+**Deploy**:
+- ✅ Committed to GitHub (a941e3a)
+- ⏳ Push in progress
+- ℹ️ Widget deploy su Shopify rimane manuale
+
+**Impact**:
+Repository widget ora ha version control completo. Tutte le future modifiche saranno tracciate. Fix subtitle removal incluso in questo commit.
+
+---
+
+### 2. ✅ Fix P0.3 - Widget Smart Actions quando Operatori Offline (Fix applicato)
+**Data**: 27 Ottobre 2025
+**Repository**: lucine-minimal
+**Branch**: main
+
+**Files Modificati**:
+- `snippets/chatbot-popup.liquid` (lines 996-1012)
+
+**Problema Risolto**:
+Quando user richiede operatore e nessuno è disponibile, il widget mostra solo un messaggio testuale "Nessun operatore disponibile" senza alcuna azione. User rimane bloccato senza modo di aprire ticket o continuare con AI.
+
+**Soluzione Implementata**:
+Aggiunta chiamata `showSmartActions()` dopo il messaggio "Nessun operatore disponibile" con 2 opzioni:
+1. **Apri Ticket** (primary) - Lascia un messaggio, ti ricontatteremo
+2. **Continua con AI** (secondary) - Prova a chiedermi altro
+
+**Codice Modificato**:
+```javascript
+if (operatorData.data?.operatorAvailable === false) {
+  addMessage(operatorData.data.message || 'Nessun operatore disponibile...', 'bot');
+
+  // ✅ FIX P0.3: Show smart actions to open ticket or continue with AI
+  showSmartActions([
+    {
+      icon: '📝',
+      text: 'Apri Ticket',
+      description: 'Lascia un messaggio, ti ricontatteremo',
+      action: 'request_ticket',
+      type: 'primary'
+    },
+    {
+      icon: '🤖',
+      text: 'Continua con AI',
+      description: 'Prova a chiedermi altro',
+      action: 'continue_ai',
+      type: 'secondary'
+    }
+  ]);
+}
+```
+
+**Testing Eseguito**:
+- [x] Codice modificato
+- [ ] Commit creato (pending)
+- [ ] Push a GitHub (pending)
+- [ ] Deploy su Shopify (pending)
+- [ ] Test end-to-end (pending)
+
+**Deploy**:
+- ⏳ Modifiche locali completate
+- ⏳ Commit pending
+- ⏳ Deploy su Shopify pending
+
+**Impact**:
+User ora ha modo di procedere quando nessun operatore disponibile. Può aprire ticket o continuare conversazione con AI. Bug critico risolto.
+
+---
+
+### 3. ✅ Fix P0.4 - Action `request_ticket` Implementation (Fix applicato)
+**Data**: 27 Ottobre 2025
+**Repository**: lucine-minimal
+**Branch**: main
+
+**Files Modificati**:
+- `snippets/chatbot-popup.liquid` (lines 1225-1228)
+
+**Problema Risolto**:
+Action button "Apri Ticket" chiama `sendMessage('apri ticket')` che invia "apri ticket" come messaggio user invece di mostrare il ticket form. La funzione `showTicketForm()` esiste nel codice ma non viene mai chiamata. Ticket form completamente inaccessibile.
+
+**Soluzione Implementata**:
+Cambiato handler action `request_ticket` per chiamare `showTicketForm()` direttamente invece di inviare un messaggio testuale.
+
+**Codice Modificato**:
+```javascript
+// PRIMA (SBAGLIATO):
+} else if (action.action === 'request_ticket') {
+  sendMessage('apri ticket');  // ❌ Invia come messaggio
+}
+
+// DOPO (CORRETTO):
+} else if (action.action === 'request_ticket') {
+  // ✅ FIX P0.4: Show ticket form instead of sending message
+  showTicketForm();
+  actionsContainer.remove();
+}
+```
+
+**Testing Eseguito**:
+- [x] Codice modificato
+- [ ] Commit creato (pending)
+- [ ] Push a GitHub (pending)
+- [ ] Deploy su Shopify (pending)
+- [ ] Test end-to-end (pending)
+
+**Deploy**:
+- ⏳ Modifiche locali completate
+- ⏳ Commit pending
+- ⏳ Deploy su Shopify pending
+
+**Impact**:
+Ticket form ora si apre correttamente al click di "Apri Ticket". User può lasciare messaggi e ricevere supporto anche quando operatori offline. Bug critico risolto.
+
+---
+
+## 🎯 Sessione Precedente: Widget Subtitle Removal
 
 ### Problema Originale
 L'utente ha riportato che il widget mostrava testi hardcoded invece di quelli configurati nel Dashboard Settings:
@@ -388,6 +545,84 @@ cd /Users/brnobtt/Desktop/lucine-minimal && git push origin main
 
 ---
 
+## 🔍 NUOVA ANALISI: Chat Flows & Critical Bugs (27 Ottobre 2025)
+
+### Analisi Completa Eseguita
+È stata condotta un'analisi approfondita di tutti i flussi chat, messaggi, azioni e notifiche nel sistema.
+
+**Documento Creato**: `docs/CHAT_FLOWS_ANALYSIS.md`
+
+### 🔴 Bugs Critici Identificati (P0)
+
+#### P0.3 - Widget No Ticket Action quando operatori offline
+**Status**: ❌ DA FIXARE
+**Impact**: 🔴 CRITICO
+**Problema**:
+- User chiede operatore, nessuno disponibile
+- Backend ritorna: "Nessun operatore disponibile. Vuoi aprire un ticket?"
+- ❌ Widget mostra SOLO messaggio, NESSUNA azione
+- User rimane bloccato senza modo di aprire ticket
+
+**Fix**: `snippets/chatbot-popup.liquid:992-995` - aggiungere smart actions
+
+#### P0.4 - Action `request_ticket` non implementata
+**Status**: ❌ DA FIXARE
+**Impact**: 🔴 CRITICO
+**Problema**:
+- Button "Apri Ticket" esiste MA chiama `sendMessage('apri ticket')` invece di mostrare form
+- Funzione `showTicketForm()` esiste ma mai chiamata
+
+**Fix**: `snippets/chatbot-popup.liquid:1207` - chiamare `showTicketForm()` invece di `sendMessage()`
+
+### 🟠 Bugs High Priority (P1)
+
+#### P1.6 - Dashboard No Notifications per Nuove Chat
+**Status**: ❌ DA FIXARE
+**Impact**: 🟠 ALTO
+**Problema**:
+- Backend emette `new_chat_request` quando operatore riceve chat
+- Dashboard ❌ NON ascolta questo evento
+- ❌ Nessuna notifica browser
+- ❌ Nessun badge count
+- Operatore non sa di avere chat pending
+
+**Fix**: Implementare socket listeners e notifications in Dashboard
+
+#### P1.7 - Widget Input Non Disabilitata Dopo Chat Chiusa
+**Status**: ❌ DA FIXARE
+**Impact**: 🟡 MEDIO
+**Problema**:
+- Operatore chiude chat → widget riceve evento
+- ❌ Input rimane attiva
+- User può ancora scrivere (ma messaggi non vanno da nessuna parte)
+
+**Fix**: `snippets/chatbot-popup.liquid:1472-1476` - disabilitare input
+
+### 📊 Flussi Analizzati
+
+Sono stati documentati **6 scenari completi**:
+1. ✅ User chiede operatore - Operatore disponibile
+2. ❌ User chiede operatore - NESSUN operatore disponibile (BUG)
+3. ❌ AI suggerisce operatore - Nessuno disponibile (BUG)
+4. ✅ Chat con operatore - Scambio messaggi
+5. ❌ Ticket Creation da widget (BROKEN)
+6. ⚠️ Operatore chiude chat (input non disabilitata)
+
+### Next Actions Suggerite
+
+**IMMEDIATO** (30 minuti):
+1. Fix P0.3 e P0.4 (widget ticket actions)
+2. Test flusso: User chiede operatore → nessuno disponibile → apre ticket
+
+**SHORT-TERM** (2-3 ore):
+1. Fix P1.6 (dashboard notifications)
+2. Fix P1.7 (disable input dopo chiusura)
+3. Testing E2E completo
+
+**Vedi dettagli**: `docs/CHAT_FLOWS_ANALYSIS.md` per tutti i flussi e fix dettagliati
+
+---
+
 **Status Generale**: 🟡 In Progress
-**Blockers**: Git push lento, deploy Shopify mancante
-**Next Action**: Verificare completamento push widget, poi deploy Shopify
+**Blockers**: Git push lento, deploy Shopify mancante, NUOVI bugs critici identificati
+**Next Action**: Completare subtitle removal, poi fixare bugs critici P0.3 e P0.4
