@@ -207,6 +207,7 @@ export const getPublicSettings = async (req, res) => {
       select: {
         key: true,
         value: true,
+        updatedAt: true,
       },
     });
 
@@ -216,6 +217,12 @@ export const getPublicSettings = async (req, res) => {
       return acc;
     }, {});
 
+    // Find the most recent update timestamp for cache busting
+    const lastUpdated = settings.reduce((latest, setting) => {
+      const settingDate = new Date(setting.updatedAt);
+      return settingDate > latest ? settingDate : latest;
+    }, new Date(0));
+
     // Set defaults if not configured
     const widgetSettings = {
       primaryColor: settingsMap.widgetPrimaryColor || '#4F46E5',
@@ -223,7 +230,16 @@ export const getPublicSettings = async (req, res) => {
       greeting: settingsMap.widgetGreeting || 'Ciao! Come possiamo aiutarti?',
       title: settingsMap.widgetTitle || 'Chat con noi',
       subtitle: settingsMap.widgetSubtitle || 'Siamo qui per aiutarti',
+      version: lastUpdated.getTime(), // Timestamp for cache busting
     };
+
+    // Set cache control headers to prevent stale cached settings
+    // Short TTL (5 minutes) with must-revalidate ensures widgets get updates quickly
+    res.set({
+      'Cache-Control': 'public, max-age=300, must-revalidate', // 5 minutes cache
+      'ETag': `"${lastUpdated.getTime()}"`, // ETag based on last update
+      'Last-Modified': lastUpdated.toUTCString(),
+    });
 
     res.json({
       success: true,
