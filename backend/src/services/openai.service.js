@@ -126,7 +126,9 @@ export async function generateAIResponse(userMessage, chatHistory = []) {
         content: `${systemPrompt}
 
 IMPORTANTE - Rilevamento Richieste Operatore:
-- Se l'utente chiede esplicitamente di parlare con una persona umana, un operatore, assistenza umana, o supporto diretto, rispondi: "Capisco che preferisci parlare con una persona. Ti metto in contatto con un operatore!"
+- Se l'utente chiede esplicitamente di parlare con una persona umana, un operatore, assistenza umana, o supporto diretto, rispondi SOLO: "Capisco che preferisci parlare con una persona. Ti metto in contatto con un operatore!"
+- NON menzionare la disponibilità degli operatori (es. "nessun operatore disponibile", "operatori offline", etc.) - il sistema gestirà automaticamente questo aspetto
+- NON suggerire ticket o altre azioni - il sistema mostrerà le opzioni appropriate all'utente
 - Se l'utente esprime frustrazione o insoddisfazione, considera di suggerire un operatore
 - Se non hai informazioni sufficienti per rispondere con certezza, ammettilo e suggerisci un operatore
 
