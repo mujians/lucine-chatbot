@@ -60,11 +60,16 @@ export const createTicket = async (req, res) => {
       },
     });
 
-    // Update chat session status
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: { status: 'TICKET_CREATED' },
-    });
+    // Update chat session status (non-blocking - ticket already created)
+    try {
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: { status: 'TICKET_CREATED' },
+      });
+    } catch (sessionUpdateError) {
+      console.error('⚠️ Chat session update failed (ticket created anyway):', sessionUpdateError);
+      // Don't throw - ticket is already created, just log the failure
+    }
 
     // Generate resume URL
     const resumeUrl = `${process.env.SHOPIFY_SITE_URL || 'https://lucine.it'}/chat?token=${resumeToken}`;
@@ -417,11 +422,16 @@ export const convertChatToTicket = async (req, res) => {
       },
     });
 
-    // Update session status
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: { status: 'TICKET_CREATED' },
-    });
+    // Update session status (non-blocking - ticket already created)
+    try {
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: { status: 'TICKET_CREATED' },
+      });
+    } catch (sessionUpdateError) {
+      console.error('⚠️ Chat session update failed (ticket created anyway):', sessionUpdateError);
+      // Don't throw - ticket is already created, just log the failure
+    }
 
     // Generate resume URL
     const resumeUrl = `${process.env.SHOPIFY_SITE_URL || 'https://lucine.it'}/chat?token=${resumeToken}`;
