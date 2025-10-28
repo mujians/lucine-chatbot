@@ -53,21 +53,22 @@ Improvement non bloccanti ma importanti per experience.
 - **Commit**: `a941e3a`
 - **Testing**: ✅ Verificato commit creato e push completato
 
-### ✅ P0.3 - Widget No Ticket Action quando operatori offline [COMPLETATO - 27/10/2025]
-- **Status**: ✅ **COMPLETATO** (fix applicato, commit pending)
+### ✅ P0.3 - Widget No Ticket Action quando operatori offline [COMPLETATO - 28/10/2025]
+- **Status**: ✅ **COMPLETATO** (commit 5bcfa53, pushed to GitHub)
 - **Issue**: Quando user richiede operatore e nessuno disponibile, mostra solo messaggio testuale senza azioni
 - **Impact**: 🔴 CRITICO - User bloccato senza modo di aprire ticket
 - **Fix Applicato**:
   1. ✅ Aggiunta chiamata `showSmartActions()` dopo messaggio "Nessun operatore disponibile"
   2. ✅ Smart actions mostrano 2 opzioni: "Apri Ticket" (primary) e "Continua con AI" (secondary)
   3. ✅ Include icone, testi e descrizioni per UX ottimale
-- **File**: `snippets/chatbot-popup.liquid:996-1012`
+  4. ✅ Commit creato e pushato: 5bcfa53
+- **File**: `snippets/chatbot-popup.liquid:1002-1018`
 - **Codice Modificato**:
   ```javascript
   if (operatorData.data?.operatorAvailable === false) {
     addMessage(operatorData.data.message || 'Nessun operatore disponibile...', 'bot');
 
-    // ✅ AGGIUNTO:
+    // ✅ FIX P0.3: Show smart actions to open ticket or continue with AI
     showSmartActions([
       {
         icon: '📝',
@@ -86,27 +87,28 @@ Improvement non bloccanti ma importanti per experience.
     ]);
   }
   ```
-- **Testing**: Pending commit e deploy
+- **Testing**: ✅ Commit pushato, ⏳ Deploy Shopify in corso, Pending test end-to-end
 - **Details**: Vedi `docs/CHAT_FLOWS_ANALYSIS.md` - Bug #1
 
-### ✅ P0.4 - Action `request_ticket` non implementata [COMPLETATO - 27/10/2025]
-- **Status**: ✅ **COMPLETATO** (fix applicato, commit pending)
+### ✅ P0.4 - Action `request_ticket` non implementata [COMPLETATO - 28/10/2025]
+- **Status**: ✅ **COMPLETATO** (commit 5bcfa53, pushed to GitHub)
 - **Issue**: Action button "Apri Ticket" chiama `sendMessage('apri ticket')` invece di mostrare form
 - **Impact**: 🔴 CRITICO - Ticket form inaccessibile
 - **Fix Applicato**:
   1. ✅ Cambiato handler action `request_ticket` da sendMessage a showTicketForm()
   2. ✅ Aggiunta rimozione actionsContainer dopo apertura form
   3. ✅ Form ticket ora si apre correttamente al click
-- **File**: `snippets/chatbot-popup.liquid:1225-1228`
+  4. ✅ Commit creato e pushato: 5bcfa53
+- **File**: `snippets/chatbot-popup.liquid:1232-1234`
 - **Codice Modificato**:
   ```javascript
   } else if (action.action === 'request_ticket') {
-    // ✅ FIX P0.4: Show ticket form invece di mandare messaggio
+    // ✅ FIX P0.4: Show ticket form instead of sending message
     showTicketForm();
     actionsContainer.remove();
   }
   ```
-- **Testing**: Pending commit e deploy
+- **Testing**: ✅ Commit pushato, ⏳ Deploy Shopify in corso, Pending test end-to-end
 - **Details**: Vedi `docs/CHAT_FLOWS_ANALYSIS.md` - Bug #2
 
 ---
