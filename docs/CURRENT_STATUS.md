@@ -1,6 +1,6 @@
 # Stato Attuale del Progetto - 27 Ottobre 2025
 
-**Ultimo aggiornamento**: 27 Ottobre 2025, ore 19:00
+**Ultimo aggiornamento**: 27 Ottobre 2025, ore 23:15
 
 ## 🎯 Sessione Corrente: Fix Bugs Critici P0 (Widget Ticket Flow)
 
@@ -9,12 +9,63 @@
 - [x] P0.5: Commit iniziale repository lucine-minimal ✅ COMPLETATO (a941e3a)
 - [x] P0.3: Mostrare smart actions quando no operatori disponibili ✅ COMPLETATO
 - [x] P0.4: Implementare action `request_ticket` correttamente ✅ COMPLETATO
-- [ ] Documentazione P0.3 P0.4: Aggiornare ROADMAP.md, CURRENT_STATUS.md
-- [ ] Commit P0.3 P0.4: Creare commit per fix widget
-- [ ] Testing: Verificare flusso ticket end-to-end
-- [x] Documentazione P0.5: Aggiornato ROADMAP.md, CURRENT_STATUS.md ✅
+- [x] Documentazione P0.3 P0.4: Aggiornare ROADMAP.md, CURRENT_STATUS.md ✅
+- [x] Commit P0.3 P0.4: Creare commit per fix widget ✅ (commit 97fc889)
+- [x] Commit documentazione lucine-production ✅ (commit d4bc3e8, pushed)
+- [ ] ⚠️  **BLOCKER**: Push lucine-minimal non riuscito (vedi sotto)
+- [ ] Testing: Verificare flusso ticket end-to-end (dopo push)
+- [ ] Deploy widget su Shopify (manuale, dopo push)
 
 ---
+
+## ⚠️  BLOCKER ATTIVO - Git Push Failed (lucine-minimal)
+
+**Problema**: Push del commit 97fc889 fallito
+**Repository**: lucine-minimal
+**Branch**: main
+
+**Errore**:
+```
+! [rejected]        main -> main (non-fast-forward)
+error: push di alcuni riferimenti su 'https://github.com/mujians/lucine25minimal.git' non riuscito
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart.
+```
+
+**Causa**: Branch locale dietro rispetto al remote. Qualcuno ha pushato modifiche al remote.
+
+**Soluzione da Applicare** (quando riprendi):
+```bash
+cd /Users/brnobtt/Desktop/lucine-minimal
+
+# 1. Verifica stato
+git log --oneline -3
+git status
+
+# 2. Pull modifiche remote
+git pull origin main --rebase
+
+# 3. Se ci sono conflitti, risolvili (probabilmente su chatbot-popup.liquid)
+# - Controlla i conflitti con: git status
+# - Risolvi manualmente preservando TUTTE le modifiche P0.3 e P0.4
+# - git add snippets/chatbot-popup.liquid
+# - git rebase --continue
+
+# 4. Push dopo aver risolto
+git push origin main
+
+# 5. Verifica push completato
+git log --oneline -3
+git status  # Deve dire "up to date with origin/main"
+```
+
+**Commit Locale Non Pushato**:
+- **Commit**: 97fc889
+- **Messaggio**: "fix: Widget ticket flow - P0.3 and P0.4 critical fixes"
+- **Files**: snippets/chatbot-popup.liquid (P0.3: lines 996-1012, P0.4: lines 1225-1228)
+- **Impact**: Fix critici non ancora su GitHub né deployabili
+
+**Next Action**: PRIMA di continuare con altro, risolvere questo push.
 
 ---
 
