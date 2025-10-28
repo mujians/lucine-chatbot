@@ -69,18 +69,23 @@ export const createTicket = async (req, res) => {
     // Generate resume URL
     const resumeUrl = `${process.env.SHOPIFY_SITE_URL || 'https://lucine.it'}/chat?token=${resumeToken}`;
 
-    // Send notification based on contact method
-    if (contactMethod === 'WHATSAPP') {
-      await twilioService.sendWhatsAppMessage(
-        whatsappNumber,
-        `Ciao ${userName}! Abbiamo ricevuto la tua richiesta. Ti ricontatteremo presto. Clicca qui per riprendere: ${resumeUrl}`
-      );
-    } else if (contactMethod === 'EMAIL') {
-      await emailService.sendEmail({
-        to: email,
-        subject: 'La tua richiesta Lucine di Natale',
-        text: `Ciao ${userName},\n\nAbbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nPuoi riprendere la conversazione qui: ${resumeUrl}\n\nGrazie!`
-      });
+    // Send notification based on contact method (non-blocking - don't fail ticket creation if notification fails)
+    try {
+      if (contactMethod === 'WHATSAPP') {
+        await twilioService.sendWhatsAppMessage(
+          whatsappNumber,
+          `Ciao ${userName}! Abbiamo ricevuto la tua richiesta. Ti ricontatteremo presto. Clicca qui per riprendere: ${resumeUrl}`
+        );
+      } else if (contactMethod === 'EMAIL') {
+        await emailService.sendEmail({
+          to: email,
+          subject: 'La tua richiesta Lucine di Natale',
+          text: `Ciao ${userName},\n\nAbbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nPuoi riprendere la conversazione qui: ${resumeUrl}\n\nGrazie!`
+        });
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Notification sending failed (ticket created anyway):', notificationError);
+      // Don't throw - ticket is already created, just log the notification failure
     }
 
     // Notify all operators
@@ -421,18 +426,23 @@ export const convertChatToTicket = async (req, res) => {
     // Generate resume URL
     const resumeUrl = `${process.env.SHOPIFY_SITE_URL || 'https://lucine.it'}/chat?token=${resumeToken}`;
 
-    // Send notification
-    if (contactMethod === 'WHATSAPP') {
-      await twilioService.sendWhatsAppMessage(
-        whatsappNumber,
-        `Ciao! Abbiamo ricevuto la tua richiesta. Ti risponderemo presto. Riprendi qui: ${resumeUrl}`
-      );
-    } else if (contactMethod === 'EMAIL') {
-      await emailService.sendEmail({
-        to: email,
-        subject: 'La tua richiesta Lucine di Natale',
-        text: `Abbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nRiprendi qui: ${resumeUrl}`
-      });
+    // Send notification (non-blocking - don't fail ticket creation if notification fails)
+    try {
+      if (contactMethod === 'WHATSAPP') {
+        await twilioService.sendWhatsAppMessage(
+          whatsappNumber,
+          `Ciao! Abbiamo ricevuto la tua richiesta. Ti risponderemo presto. Riprendi qui: ${resumeUrl}`
+        );
+      } else if (contactMethod === 'EMAIL') {
+        await emailService.sendEmail({
+          to: email,
+          subject: 'La tua richiesta Lucine di Natale',
+          text: `Abbiamo ricevuto la tua richiesta e ti risponderemo al più presto.\n\nRiprendi qui: ${resumeUrl}`
+        });
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Notification sending failed (ticket created anyway):', notificationError);
+      // Don't throw - ticket is already created, just log the notification failure
     }
 
     // Notify dashboard
