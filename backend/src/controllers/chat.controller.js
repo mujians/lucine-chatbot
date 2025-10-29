@@ -1,6 +1,7 @@
 import { prisma } from '../server.js';
 import { io } from '../server.js';
 import { generateAIResponse } from '../services/openai.service.js';
+import { emailService } from '../services/email.service.js';
 
 /**
  * Create new chat session
@@ -8,11 +9,12 @@ import { generateAIResponse } from '../services/openai.service.js';
  */
 export const createSession = async (req, res) => {
   try {
-    const { userName } = req.body;
+    const { userName, userEmail } = req.body;
 
     const session = await prisma.chatSession.create({
       data: {
         userName: userName || null,
+        userEmail: userEmail || null, // P0.4: For email transcript
         status: 'ACTIVE',
         messages: JSON.stringify([]),
       },
@@ -404,6 +406,17 @@ export const closeSession = async (req, res) => {
         messages: JSON.stringify(messages),
       },
     });
+
+    // P0.4: Send chat transcript email if user provided email
+    if (updatedSession.userEmail) {
+      try {
+        await emailService.sendChatTranscript(updatedSession.userEmail, updatedSession);
+        console.log(`✅ P0.4: Chat transcript sent to ${updatedSession.userEmail}`);
+      } catch (emailError) {
+        console.error('Failed to send chat transcript:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     // If had operator, increment their stats
     if (session.operatorId) {

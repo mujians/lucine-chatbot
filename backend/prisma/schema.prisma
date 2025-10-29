@@ -101,6 +101,7 @@ model ChatSession {
 
   // User info
   userName                String?
+  userEmail               String?  // P0.4: For email transcript
   userAgent               String?
   ipAddress               String?  // Hashed for GDPR
 

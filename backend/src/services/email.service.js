@@ -224,6 +224,135 @@ Lucine di Natale
   }
 
   /**
+   * P0.4: Send chat transcript email
+   * @param {string} email - User email
+   * @param {Object} session - Chat session data
+   */
+  async sendChatTranscript(email, session) {
+    try {
+      if (!email) {
+        console.log('No email provided for chat transcript');
+        return { success: false, reason: 'no_email' };
+      }
+
+      const messages = JSON.parse(session.messages || '[]');
+      const userName = session.userName || 'Cliente';
+      const sessionDate = new Date(session.createdAt).toLocaleString('it-IT');
+
+      // Format messages for email
+      const messagesHtml = messages
+        .map((msg) => {
+          const time = new Date(msg.timestamp).toLocaleTimeString('it-IT', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
+          let senderName = '';
+          let bgColor = '';
+          let textColor = '#000';
+
+          if (msg.type === 'user') {
+            senderName = userName;
+            bgColor = '#f3f4f6';
+          } else if (msg.type === 'operator') {
+            senderName = msg.operatorName || 'Operatore';
+            bgColor = '#dbeafe';
+          } else if (msg.type === 'bot') {
+            senderName = 'Assistente AI';
+            bgColor = '#e0e7ff';
+          } else {
+            senderName = 'Sistema';
+            bgColor = '#fef3c7';
+            textColor = '#92400e';
+          }
+
+          return `
+            <div style="margin-bottom: 12px; padding: 12px; background-color: ${bgColor}; border-radius: 8px;">
+              <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">
+                <strong>${senderName}</strong> - ${time}
+              </div>
+              <div style="color: ${textColor};">${msg.content.replace(/\n/g, '<br>')}</div>
+            </div>
+          `;
+        })
+        .join('');
+
+      const subject = 'Trascrizione della tua chat - Lucine di Natale';
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #4f46e5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0;">Trascrizione Chat</h1>
+          </div>
+
+          <div style="background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb;">
+            <p>Ciao ${userName},</p>
+            <p>Ecco la trascrizione completa della tua conversazione con noi.</p>
+
+            <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Data:</strong> ${sessionDate}</p>
+              <p style="margin: 5px 0;"><strong>ID Sessione:</strong> ${session.id}</p>
+            </div>
+
+            <h2 style="color: #4f46e5; border-bottom: 2px solid #4f46e5; padding-bottom: 8px;">Messaggi</h2>
+
+            <div style="margin-top: 20px;">
+              ${messagesHtml}
+            </div>
+          </div>
+
+          <div style="background-color: #f3f4f6; padding: 15px; text-align: center; border-radius: 0 0 8px 8px; margin-top: 0;">
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+              Grazie per averci contattato!<br>
+              <em>Lucine di Natale - Assistenza Clienti</em>
+            </p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const text = `
+Ciao ${userName},
+
+Ecco la trascrizione della tua conversazione:
+
+Data: ${sessionDate}
+ID Sessione: ${session.id}
+
+MESSAGGI:
+${messages.map((msg) => {
+  const time = new Date(msg.timestamp).toLocaleTimeString('it-IT');
+  const sender = msg.type === 'user' ? userName : msg.type === 'operator' ? (msg.operatorName || 'Operatore') : msg.type === 'bot' ? 'Assistente AI' : 'Sistema';
+  return `[${time}] ${sender}: ${msg.content}`;
+}).join('\n\n')}
+
+---
+Grazie per averci contattato!
+Lucine di Natale - Assistenza Clienti
+      `;
+
+      const result = await this.sendEmail({
+        to: email,
+        subject,
+        text,
+        html,
+      });
+
+      console.log(`✅ Chat transcript sent to ${email} for session ${session.id}`);
+      return result;
+    } catch (error) {
+      console.error('Failed to send chat transcript:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Test email connection
    * @returns {Promise<boolean>} Connection test result
    */
