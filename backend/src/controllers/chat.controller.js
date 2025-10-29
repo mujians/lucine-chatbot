@@ -1314,3 +1314,163 @@ export const uploadFile = async (req, res) => {
     });
   }
 };
+
+/**
+ * P1.2: Submit chat rating (CSAT)
+ * POST /api/chat/sessions/:sessionId/rating
+ * Body: { rating: 1-5, comment?: string }
+ */
+export const submitRating = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { rating, comment } = req.body;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        error: { message: 'Rating must be between 1 and 5' },
+      });
+    }
+
+    // Get session
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        operator: true,
+        user: true,
+      },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Check if rating already exists
+    const existingRating = await prisma.chatRating.findUnique({
+      where: { sessionId: sessionId },
+    });
+
+    if (existingRating) {
+      return res.status(400).json({
+        error: { message: 'Rating already submitted for this session' },
+      });
+    }
+
+    // Create rating
+    const chatRating = await prisma.chatRating.create({
+      data: {
+        sessionId: sessionId,
+        rating: rating,
+        comment: comment || null,
+        userId: session.userId || null,
+        userEmail: session.userEmail || null,
+        operatorId: session.operatorId || null,
+        operatorName: session.operator?.name || null,
+      },
+    });
+
+    console.log(`✅ P1.2: Rating ${rating}⭐ submitted for session ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: { rating: chatRating },
+      message: 'Rating submitted successfully',
+    });
+  } catch (error) {
+    console.error('Submit rating error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * P1.2: Get ratings analytics
+ * GET /api/chat/ratings/analytics
+ * Query params: ?operatorId=xxx, ?startDate=xxx, ?endDate=xxx
+ */
+export const getRatingsAnalytics = async (req, res) => {
+  try {
+    const { operatorId, startDate, endDate } = req.query;
+
+    // Build where clause
+    const where = {};
+    if (operatorId) where.operatorId = operatorId;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    // Get all ratings
+    const ratings = await prisma.chatRating.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        session: {
+          select: {
+            id: true,
+            userName: true,
+            userEmail: true,
+          },
+        },
+      },
+    });
+
+    // Calculate stats
+    const totalRatings = ratings.length;
+    const averageRating = totalRatings > 0
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings
+      : 0;
+
+    // Rating distribution
+    const distribution = {
+      1: ratings.filter((r) => r.rating === 1).length,
+      2: ratings.filter((r) => r.rating === 2).length,
+      3: ratings.filter((r) => r.rating === 3).length,
+      4: ratings.filter((r) => r.rating === 4).length,
+      5: ratings.filter((r) => r.rating === 5).length,
+    };
+
+    // Per operator stats
+    const operatorStats = {};
+    ratings.forEach((r) => {
+      if (r.operatorId) {
+        if (!operatorStats[r.operatorId]) {
+          operatorStats[r.operatorId] = {
+            operatorId: r.operatorId,
+            operatorName: r.operatorName,
+            totalRatings: 0,
+            sumRatings: 0,
+            averageRating: 0,
+          };
+        }
+        operatorStats[r.operatorId].totalRatings++;
+        operatorStats[r.operatorId].sumRatings += r.rating;
+      }
+    });
+
+    // Calculate averages
+    Object.values(operatorStats).forEach((stat) => {
+      stat.averageRating = stat.sumRatings / stat.totalRatings;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalRatings,
+        averageRating: Math.round(averageRating * 10) / 10,
+        distribution,
+        operatorStats: Object.values(operatorStats),
+        ratings: ratings.slice(0, 50), // Last 50 ratings
+      },
+    });
+  } catch (error) {
+    console.error('Get ratings analytics error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};

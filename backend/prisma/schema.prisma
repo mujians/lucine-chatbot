@@ -171,6 +171,7 @@ model ChatSession {
 
   // Relations
   ticket                  Ticket?
+  rating                  ChatRating?  // P1.2: Customer satisfaction rating
 
   @@index([status])
   @@index([userId])
@@ -179,6 +180,34 @@ model ChatSession {
   @@index([isFlagged])
   @@index([deletedAt])
   @@index([lastMessageAt])
+  @@index([createdAt])
+}
+
+// P1.2: Chat Rating (CSAT - Customer Satisfaction)
+model ChatRating {
+  id                      String      @id @default(uuid())
+
+  // Relation to chat session
+  sessionId               String      @unique
+  session                 ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Rating data
+  rating                  Int         // 1-5 stars
+  comment                 String?     @db.Text
+
+  // User info (for analytics)
+  userId                  String?
+  userEmail               String?
+
+  // Operator info (for performance tracking)
+  operatorId              String?
+  operatorName            String?
+
+  // Timestamps
+  createdAt               DateTime    @default(now())
+
+  @@index([rating])
+  @@index([operatorId])
   @@index([createdAt])
 }
 

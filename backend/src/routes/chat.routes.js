@@ -21,6 +21,8 @@ import {
   deleteInternalNote,
   getUserHistory,
   uploadFile,
+  submitRating,
+  getRatingsAnalytics,
 } from '../controllers/chat.controller.js';
 import { convertChatToTicket } from '../controllers/ticket.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
@@ -67,5 +69,9 @@ router.post(
   upload.single('file'),
   uploadFile
 );
+
+// P1.2: CSAT (Customer Satisfaction) routes
+router.post('/sessions/:sessionId/rating', submitRating);  // Public - users can rate
+router.get('/ratings/analytics', authenticateToken, getRatingsAnalytics);  // Protected - operators only
 
 export default router;
