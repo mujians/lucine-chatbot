@@ -14,6 +14,8 @@ import {
   unflagSession,
   transferSession,
   markMessagesAsRead,
+  updatePriority,
+  updateTags,
 } from '../controllers/chat.controller.js';
 import { convertChatToTicket } from '../controllers/ticket.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
@@ -38,5 +40,9 @@ router.post('/sessions/:sessionId/flag', authenticateToken, flagSession);
 router.post('/sessions/:sessionId/unflag', authenticateToken, unflagSession);
 router.post('/sessions/:sessionId/transfer', authenticateToken, transferSession);
 router.post('/session/:sessionId/convert-to-ticket', authenticateToken, convertChatToTicket);
+
+// P1.8: Priority and Tags routes
+router.put('/sessions/:sessionId/priority', authenticateToken, updatePriority);
+router.put('/sessions/:sessionId/tags', authenticateToken, updateTags);
 
 export default router;

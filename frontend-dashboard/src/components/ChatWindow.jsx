@@ -24,6 +24,10 @@ const ChatWindow = ({ chat, onClose }) => {
     toOperatorId: '',
     reason: '',
   });
+  // P1.8: Priority and Tags
+  const [priority, setPriority] = useState(chat?.priority || 'NORMAL');
+  const [tags, setTags] = useState(chat?.tags ? JSON.parse(chat.tags) : []);
+  const [newTag, setNewTag] = useState('');
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null); // P0.5: For debouncing typing indicator
 
@@ -205,6 +209,52 @@ const ChatWindow = ({ chat, onClose }) => {
     }
   };
 
+  // P1.8: Update priority
+  const handlePriorityChange = async (newPriority) => {
+    try {
+      await axios.put(`/api/chat/sessions/${chat.id}/priority`, {
+        priority: newPriority,
+      });
+      setPriority(newPriority);
+      console.log('✅ Priority updated');
+    } catch (error) {
+      console.error('Error updating priority:', error);
+      alert('Errore aggiornamento priorità');
+    }
+  };
+
+  // P1.8: Add tag
+  const handleAddTag = async () => {
+    if (!newTag.trim()) return;
+    const updatedTags = [...tags, newTag.trim()];
+    try {
+      await axios.put(`/api/chat/sessions/${chat.id}/tags`, {
+        tags: updatedTags,
+      });
+      setTags(updatedTags);
+      setNewTag('');
+      console.log('✅ Tag added');
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      alert('Errore aggiunta tag');
+    }
+  };
+
+  // P1.8: Remove tag
+  const handleRemoveTag = async (tagToRemove) => {
+    const updatedTags = tags.filter((t) => t !== tagToRemove);
+    try {
+      await axios.put(`/api/chat/sessions/${chat.id}/tags`, {
+        tags: updatedTags,
+      });
+      setTags(updatedTags);
+      console.log('✅ Tag removed');
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      alert('Errore rimozione tag');
+    }
+  };
+
   const handleTransferChat = async () => {
     if (!transferData.toOperatorId) {
       alert('Seleziona un operatore');
@@ -290,6 +340,59 @@ const ChatWindow = ({ chat, onClose }) => {
                 AI: {Math.round(chat.aiConfidence * 100)}%
               </span>
             )}
+          </div>
+        </div>
+
+        {/* P1.8: Priority and Tags */}
+        <div className="mt-3 flex items-center gap-4">
+          {/* Priority Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Priorità:</span>
+            <select
+              value={priority}
+              onChange={(e) => handlePriorityChange(e.target.value)}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="LOW">🟢 Bassa</option>
+              <option value="NORMAL">🔵 Normale</option>
+              <option value="HIGH">🟠 Alta</option>
+              <option value="URGENT">🔴 Urgente</option>
+            </select>
+          </div>
+
+          {/* Tags */}
+          <div className="flex items-center gap-2 flex-wrap flex-1">
+            <span className="text-sm text-gray-600">Tags:</span>
+            {tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+              >
+                {tag}
+                <button
+                  onClick={() => handleRemoveTag(tag)}
+                  className="hover:text-blue-900"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                placeholder="Aggiungi tag"
+                className="px-2 py-1 text-sm border border-gray-300 rounded w-32 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+              <button
+                onClick={handleAddTag}
+                className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
       </div>
