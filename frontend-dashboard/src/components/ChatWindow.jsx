@@ -45,9 +45,19 @@ const ChatWindow = ({ chat, onClose }) => {
     }
     newSocket.emit('join_chat', { sessionId: chat.id });
 
-    newSocket.on('new_message', (message) => {
-      if (message.sessionId === chat.id) {
-        setMessages((prev) => [...prev, message]);
+    // Listen for user messages (P12 fix)
+    newSocket.on('user_message', (data) => {
+      console.log('📨 Received user_message:', data);
+      if (data.sessionId === chat.id && data.message) {
+        setMessages((prev) => [...prev, data.message]);
+      }
+    });
+
+    // Listen for operator messages sent by other operators
+    newSocket.on('operator_message', (data) => {
+      console.log('📨 Received operator_message:', data);
+      if (data.sessionId === chat.id && data.message) {
+        setMessages((prev) => [...prev, data.message]);
       }
     });
 
