@@ -27,6 +27,11 @@ interface SettingsState {
   smtpPassword: string;
   emailFrom: string;
 
+  // Cloudinary Settings (P0.1 - File Upload)
+  cloudinaryCloudName: string;
+  cloudinaryApiKey: string;
+  cloudinaryApiSecret: string;
+
   // Widget Colors
   widgetHeaderColor: string;
   widgetUserBalloonColor: string;
@@ -86,6 +91,11 @@ const defaultSettings: SettingsState = {
   smtpUser: '',
   smtpPassword: '',
   emailFrom: '',
+
+  // Cloudinary Settings (P0.1 - File Upload)
+  cloudinaryCloudName: '',
+  cloudinaryApiKey: '',
+  cloudinaryApiSecret: '',
 
   // Widget Colors
   widgetHeaderColor: '#dc2626',
@@ -444,6 +454,35 @@ export default function Settings() {
               )}
             </div>
           }
+        />
+
+        {/* Cloudinary Settings */}
+        <SettingsSection
+          title="Cloudinary (File Storage)"
+          description="Configura Cloudinary per l'upload di file in chat"
+          fields={[
+            {
+              label: 'Cloud Name',
+              type: 'text',
+              value: settings.cloudinaryCloudName,
+              onChange: (value) => handleChange('cloudinaryCloudName', value),
+              placeholder: 'dja2b7cyw',
+            },
+            {
+              label: 'API Key',
+              type: 'text',
+              value: settings.cloudinaryApiKey,
+              onChange: (value) => handleChange('cloudinaryApiKey', value),
+              placeholder: '778117516175176',
+            },
+            {
+              label: 'API Secret',
+              type: 'password',
+              value: settings.cloudinaryApiSecret,
+              onChange: (value) => handleChange('cloudinaryApiSecret', value),
+              placeholder: '••••••••••••',
+            },
+          ]}
         />
           </TabsContent>
 
