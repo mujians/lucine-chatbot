@@ -19,6 +19,7 @@ import {
   addInternalNote,
   updateInternalNote,
   deleteInternalNote,
+  getUserHistory,
 } from '../controllers/chat.controller.js';
 import { convertChatToTicket } from '../controllers/ticket.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
@@ -52,5 +53,8 @@ router.put('/sessions/:sessionId/tags', authenticateToken, updateTags);
 router.post('/sessions/:sessionId/notes', authenticateToken, addInternalNote);
 router.put('/sessions/:sessionId/notes/:noteId', authenticateToken, updateInternalNote);
 router.delete('/sessions/:sessionId/notes/:noteId', authenticateToken, deleteInternalNote);
+
+// P0.2: User History route
+router.get('/users/:userId/history', authenticateToken, getUserHistory);
 
 export default router;

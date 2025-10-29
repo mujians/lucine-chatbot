@@ -11,10 +11,43 @@ export const createSession = async (req, res) => {
   try {
     const { userName, userEmail } = req.body;
 
+    // P0.2: Find or create user if email provided
+    let userId = null;
+    if (userEmail) {
+      let user = await prisma.user.findUnique({
+        where: { email: userEmail },
+      });
+
+      if (!user) {
+        // Create new user
+        user = await prisma.user.create({
+          data: {
+            email: userEmail,
+            name: userName || null,
+            totalChats: 1,
+          },
+        });
+        console.log(`✅ P0.2: New user created: ${userEmail}`);
+      } else {
+        // Update existing user
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lastSeenAt: new Date(),
+            totalChats: { increment: 1 },
+            ...(userName && { name: userName }),
+          },
+        });
+        console.log(`✅ P0.2: Existing user updated: ${userEmail}`);
+      }
+      userId = user.id;
+    }
+
     const session = await prisma.chatSession.create({
       data: {
         userName: userName || null,
         userEmail: userEmail || null, // P0.4: For email transcript
+        userId: userId, // P0.2: Link to user
         status: 'ACTIVE',
         messages: JSON.stringify([]),
       },
@@ -56,6 +89,16 @@ export const getSession = async (req, res) => {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            totalChats: true,
+            firstSeenAt: true,
+            lastSeenAt: true,
           },
         },
       },
@@ -1099,6 +1142,81 @@ export const deleteInternalNote = async (req, res) => {
     });
   } catch (error) {
     console.error('Delete internal note error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * P0.2: Get user history (all chat sessions for a user)
+ * GET /api/chat/users/:userId/history
+ */
+export const getUserHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get user details
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: { message: 'User not found' },
+      });
+    }
+
+    // Get all chat sessions for this user
+    const sessions = await prisma.chatSession.findMany({
+      where: { userId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        closedAt: true,
+        lastMessageAt: true,
+        operatorId: true,
+        operator: {
+          select: {
+            name: true,
+          },
+        },
+        messages: true,
+        priority: true,
+        tags: true,
+        aiConfidence: true,
+      },
+    });
+
+    // Parse messages for each session
+    const sessionsWithParsedMessages = sessions.map((session) => ({
+      ...session,
+      messages: JSON.parse(session.messages || '[]'),
+      messageCount: JSON.parse(session.messages || '[]').length,
+    }));
+
+    console.log(`✅ P0.2: User history loaded for ${user.email || userId} (${sessions.length} sessions)`);
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          totalChats: user.totalChats,
+          firstSeenAt: user.firstSeenAt,
+          lastSeenAt: user.lastSeenAt,
+        },
+        sessions: sessionsWithParsedMessages,
+      },
+      message: 'User history retrieved successfully',
+    });
+  } catch (error) {
+    console.error('Get user history error:', error);
     res.status(500).json({
       error: { message: 'Internal server error' },
     });

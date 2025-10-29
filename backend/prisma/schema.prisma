@@ -96,10 +96,37 @@ model Operator {
   @@index([isAvailable])
 }
 
+// P0.2: User model for tracking history across sessions
+model User {
+  id                      String        @id @default(uuid())
+  name                    String?
+  email                   String?       @unique
+  phone                   String?
+
+  // Stats
+  totalChats              Int           @default(0)
+
+  // Timestamps
+  firstSeenAt             DateTime      @default(now())
+  lastSeenAt              DateTime      @default(now())
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  // Relations
+  chatSessions            ChatSession[]
+
+  @@index([email])
+  @@index([lastSeenAt])
+}
+
 model ChatSession {
   id                      String   @id @default(uuid())
 
-  // User info
+  // P0.2: User relation
+  userId                  String?
+  user                    User?    @relation(fields: [userId], references: [id])
+
+  // User info (kept for backward compatibility)
   userName                String?
   userEmail               String?  // P0.4: For email transcript
   userAgent               String?
@@ -146,6 +173,7 @@ model ChatSession {
   ticket                  Ticket?
 
   @@index([status])
+  @@index([userId])
   @@index([operatorId])
   @@index([isArchived])
   @@index([isFlagged])
