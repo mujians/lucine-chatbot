@@ -89,31 +89,12 @@ class BackgroundJobsService {
 
   /**
    * Update operator status based on activity
+   * DISABLED: Operators manage their own availability manually
    */
   async updateOperatorStatus() {
-    try {
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-
-      // Mark operators as offline if no activity in last 30 minutes
-      const result = await prisma.operator.updateMany({
-        where: {
-          isOnline: true,
-          lastSeenAt: {
-            lt: thirtyMinutesAgo,
-          },
-        },
-        data: {
-          isOnline: false,
-          isAvailable: false,
-        },
-      });
-
-      if (result.count > 0) {
-        console.log(`🔴 Marked ${result.count} operators as offline (inactive >30min)`);
-      }
-    } catch (error) {
-      console.error('Failed to update operator status:', error);
-    }
+    // Auto-offline disabled - operators control their status manually
+    // If needed in future, add notification before auto-offline
+    return;
   }
 }
 
