@@ -271,6 +271,81 @@ export const requestOperator = async (req, res) => {
 };
 
 /**
+ * Send operator message to user
+ * POST /api/chat/session/:sessionId/operator-message
+ */
+export const sendOperatorMessage = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { message, operatorId } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        error: { message: 'Message is required' },
+      });
+    }
+
+    // Get session
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        operator: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Parse messages
+    const messages = JSON.parse(session.messages || '[]');
+
+    // Add operator message
+    const operatorMessage = {
+      id: Date.now().toString(),
+      type: 'operator',
+      content: message,
+      timestamp: new Date().toISOString(),
+      operatorId: operatorId || session.operatorId,
+      operatorName: session.operator?.name || 'Operatore',
+    };
+
+    messages.push(operatorMessage);
+
+    // Update session
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        messages: JSON.stringify(messages),
+        lastMessageAt: new Date(),
+      },
+    });
+
+    // Emit to user via Socket.IO
+    io.to(`chat_${sessionId}`).emit('operator_message', {
+      sessionId: sessionId,
+      message: operatorMessage,
+    });
+
+    console.log(`📤 Operator message sent to session ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: { message: operatorMessage },
+    });
+  } catch (error) {
+    console.error('Send operator message error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
  * Close chat session
  * POST /api/chat/session/:sessionId/close
  */

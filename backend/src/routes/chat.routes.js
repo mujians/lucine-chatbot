@@ -4,6 +4,7 @@ import {
   getSession,
   sendUserMessage,
   requestOperator,
+  sendOperatorMessage,
   closeSession,
   getSessions,
   deleteSession,
@@ -26,6 +27,7 @@ router.post('/session/:sessionId/request-operator', requestOperator);
 
 // Protected routes (for operators)
 router.get('/sessions', authenticateToken, getSessions);
+router.post('/session/:sessionId/operator-message', authenticateToken, sendOperatorMessage);
 router.post('/session/:sessionId/close', authenticateToken, closeSession);
 router.delete('/sessions/:sessionId', authenticateToken, deleteSession);
 router.post('/sessions/:sessionId/archive', authenticateToken, archiveSession);
