@@ -1,6 +1,36 @@
 # Render.com - Deployment Configuration
 
-**Last Updated**: 26 Ottobre 2025
+**Last Updated**: 29 Ottobre 2025
+
+---
+
+## ⚠️ REPOSITORY - LEGGERE PRIMA DI PUSHARE!
+
+**NON CONFONDERE I REPOSITORY!** Ogni servizio Render è collegato a un repository GitHub **DIVERSO**:
+
+| Servizio Render | Tipo | Repository GitHub | Branch |
+|----------------|------|-------------------|--------|
+| **chatbot-lucy-2025** | Backend (Node.js) | `https://github.com/mujians/chatbot-lucy-2025` | `main` |
+| **lucine-dashboard** | Frontend (Static) | `https://github.com/mujians/lucine-chatbot` | `main` |
+| **lucine-chatbot-db** | PostgreSQL | N/A | N/A |
+
+**Come verificare su quale repository sei:**
+```bash
+# Nella cartella lucine-production/
+git remote -v
+
+# ✅ Se vedi chatbot-lucy-2025.git → OK per backend
+# ❌ Se vedi lucine-chatbot.git → SBAGLIATO per backend!
+```
+
+**Come cambiare repository se necessario:**
+```bash
+# Per lavorare sul BACKEND:
+git remote set-url origin https://github.com/mujians/chatbot-lucy-2025.git
+
+# Per lavorare sul FRONTEND:
+git remote set-url origin https://github.com/mujians/lucine-chatbot.git
+```
 
 ---
 
@@ -22,7 +52,11 @@ DATABASE_URL=postgresql://...
 ### 2. chatbot-lucy-2025 (BACKEND)
 - **Tipo**: Web Service (Node.js)
 - **Regione**: Frankfurt
-- **Repository**: https://github.com/mujians/lucine-chatbot
+- **Repository**: https://github.com/mujians/chatbot-lucy-2025
+
+**⚠️ IMPORTANTE - Repository Corretto**:
+- ✅ Backend pushare su: `https://github.com/mujians/chatbot-lucy-2025`
+- ❌ NON pushare su: `https://github.com/mujians/lucine-chatbot` (quello è il frontend)
 
 **Configurazione CORRETTA**:
 ```yaml
@@ -50,6 +84,10 @@ Instance Type: Free
 ### 3. lucine-dashboard (FRONTEND)
 - **Tipo**: Static Site
 - **Repository**: https://github.com/mujians/lucine-chatbot
+
+**⚠️ IMPORTANTE - Repository Corretto**:
+- ✅ Frontend pushare su: `https://github.com/mujians/lucine-chatbot`
+- ❌ NON pushare su: `https://github.com/mujians/chatbot-lucy-2025` (quello è il backend)
 
 **Configurazione CORRETTA**:
 ```yaml
@@ -227,6 +265,63 @@ lucine-production/
 **Build vs Start**:
 - BUILD = No DATABASE_URL disponibile
 - START = DATABASE_URL disponibile → Qui vanno le migration
+
+---
+
+## 🔄 WORKFLOW CORRETTO - Deploy Backend
+
+**SEMPRE seguire questo workflow quando modifichi il backend:**
+
+```bash
+# 1. Verifica di essere sul repository corretto
+git remote -v
+# DEVE mostrare: origin https://github.com/mujians/chatbot-lucy-2025.git
+
+# 2. Se NON vedi chatbot-lucy-2025, cambialo:
+git remote set-url origin https://github.com/mujians/chatbot-lucy-2025.git
+
+# 3. Modifica i file backend (backend/src/...)
+# ... fai le tue modifiche ...
+
+# 4. Commit
+git add backend/
+git commit -m "descrizione del fix"
+
+# 5. Push (triggera auto-deploy su Render)
+git push origin main
+
+# 6. Verifica deploy su Render
+# - Vai su dashboard.render.com
+# - Seleziona chatbot-lucy-2025
+# - Tab "Events" → dovresti vedere il nuovo deploy
+# - Tab "Logs" → controlla che non ci siano errori
+```
+
+**Se auto-deploy non parte:**
+1. Render Dashboard → chatbot-lucy-2025
+2. Settings → Build & Deploy → Verifica "Auto-Deploy" = Yes
+3. Oppure fai "Manual Deploy" → "Deploy latest commit"
+
+---
+
+## 🔄 WORKFLOW CORRETTO - Deploy Frontend
+
+**Per modifiche al frontend/dashboard:**
+
+```bash
+# 1. Cambia repository
+git remote set-url origin https://github.com/mujians/lucine-chatbot.git
+
+# 2. Modifica frontend (frontend-dashboard/src/...)
+# ... fai le tue modifiche ...
+
+# 3. Commit e push
+git add frontend-dashboard/
+git commit -m "descrizione del fix"
+git push origin main
+
+# 4. Verifica su Render → lucine-dashboard service
+```
 
 ---
 
