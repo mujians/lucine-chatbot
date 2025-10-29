@@ -9,6 +9,7 @@ const SettingsPanel = () => {
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingWhatsApp, setTestingWhatsApp] = useState(false);
   const [testResults, setTestResults] = useState({});
+  const [activeTab, setActiveTab] = useState('general'); // P2.2: Tab state
 
   useEffect(() => {
     fetchSettings();
@@ -144,134 +145,127 @@ const SettingsPanel = () => {
     );
   };
 
-  const categories = [
-    { key: 'general', label: 'Generale', icon: '⚙️' },
-    { key: 'chat', label: 'Chat', icon: '💬' },
-    { key: 'ai', label: 'AI', icon: '🤖' },
-    { key: 'notification', label: 'Notifiche', icon: '🔔' },
+  // P2.2: Tabs for better organization
+  const tabs = [
+    { key: 'general', label: 'Generale', icon: '⚙️', description: 'Impostazioni generali del sistema' },
+    { key: 'widget', label: 'Widget', icon: '💬', description: 'Aspetto e comportamento del widget chat' },
+    { key: 'ai', label: 'AI', icon: '🤖', description: 'Configurazione intelligenza artificiale' },
+    { key: 'notification', label: 'Notifiche', icon: '🔔', description: 'Email, WhatsApp e notifiche push' },
+    { key: 'integrations', label: 'Integrazioni', icon: '🔌', description: 'Test connessioni SMTP e Twilio' },
   ];
 
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Impostazioni</h1>
-        <p className="text-gray-600">Configura il comportamento del sistema</p>
-      </div>
+  // P2.2: Get settings for widget category (custom mapping)
+  const getWidgetSettings = () => {
+    return settings.filter((s) =>
+      s.key.startsWith('widget') ||
+      s.key === 'chatGreeting' ||
+      s.key === 'chatTitle'
+    );
+  };
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="flex gap-1">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
-          </div>
+  // P2.2: Render content based on active tab
+  const renderTabContent = () => {
+    if (activeTab === 'integrations') {
+      return renderIntegrationsTab();
+    }
+
+    // Get settings for current tab
+    let tabSettings = [];
+    if (activeTab === 'widget') {
+      tabSettings = getWidgetSettings();
+    } else {
+      tabSettings = getCategorySettings(activeTab);
+    }
+
+    if (tabSettings.length === 0) {
+      return (
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-2xl mb-2">📭</p>
+          <p>Nessuna impostazione in questa categoria</p>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {categories.map((category) => {
-            const categorySettings = getCategorySettings(category.key);
+      );
+    }
 
-            if (categorySettings.length === 0) return null;
-
-            return (
-              <div
-                key={category.key}
-                className="bg-white rounded-lg shadow-sm border border-gray-200"
-              >
-                {/* Category Header */}
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <span className="text-2xl">{category.icon}</span>
-                    {category.label}
-                  </h2>
+    return (
+      <div className="space-y-4">
+        {tabSettings.map((setting) => (
+          <div key={setting.key} className="p-6 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-medium text-gray-900">
+                    {setting.key.replace(/_/g, ' ')}
+                  </h3>
+                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                    {setting.key}
+                  </span>
                 </div>
+                {setting.description && (
+                  <p className="text-sm text-gray-600 mb-3">
+                    {setting.description}
+                  </p>
+                )}
 
-                {/* Settings List */}
-                <div className="divide-y divide-gray-200">
-                  {categorySettings.map((setting) => (
-                    <div key={setting.key} className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-gray-900">
-                              {setting.key.replace(/_/g, ' ')}
-                            </h3>
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                              {setting.key}
-                            </span>
-                          </div>
-                          {setting.description && (
-                            <p className="text-sm text-gray-600 mb-3">
-                              {setting.description}
-                            </p>
-                          )}
+                <div className="flex items-center gap-3">
+                  {renderSettingInput(setting)}
 
-                          <div className="flex items-center gap-3">
-                            {renderSettingInput(setting)}
+                  {editingKey !== setting.key && (
+                    <button
+                      onClick={() => setEditingKey(setting.key)}
+                      className="px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      Modifica
+                    </button>
+                  )}
 
-                            {editingKey !== setting.key && (
-                              <button
-                                onClick={() => setEditingKey(setting.key)}
-                                className="px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                              >
-                                Modifica
-                              </button>
-                            )}
-
-                            {editingKey === setting.key && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleSave(setting)}
-                                  disabled={saving}
-                                  className="px-4 py-2 text-sm bg-christmas-green text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                                >
-                                  {saving ? 'Salvataggio...' : 'Salva'}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingKey(null);
-                                    fetchSettings(); // Reset changes
-                                  }}
-                                  className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                                >
-                                  Annulla
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {setting.updatedBy && setting.updatedAt && (
-                        <p className="text-xs text-gray-500 mt-3">
-                          Ultima modifica:{' '}
-                          {new Date(setting.updatedAt).toLocaleString('it-IT')}
-                        </p>
-                      )}
+                  {editingKey === setting.key && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSave(setting)}
+                        disabled={saving}
+                        className="px-4 py-2 text-sm bg-christmas-green text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                      >
+                        {saving ? 'Salvataggio...' : 'Salva'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingKey(null);
+                          fetchSettings(); // Reset changes
+                        }}
+                        className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Annulla
+                      </button>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
 
-      {/* P2.3: Test Connections */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <span className="text-2xl">🔌</span>
-            Test Connessioni
-          </h2>
-        </div>
+            {setting.updatedBy && setting.updatedAt && (
+              <p className="text-xs text-gray-500 mt-3">
+                Ultima modifica:{' '}
+                {new Date(setting.updatedAt).toLocaleString('it-IT')}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
-        <div className="p-6 space-y-6">
-          {/* Test Email */}
+  // P2.2: Render integrations tab (test connections)
+  const renderIntegrationsTab = () => {
+    return (
+      <div className="space-y-6">
+        {/* Test Email */}
+        <div className="p-6 bg-white rounded-lg border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="font-medium text-gray-900 mb-1">SMTP / Email</h3>
+              <h3 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
+                <span className="text-2xl">📧</span>
+                SMTP / Email
+              </h3>
               <p className="text-sm text-gray-600 mb-3">
                 Testa la connessione al server SMTP per l'invio di email
               </p>
@@ -295,11 +289,16 @@ const SettingsPanel = () => {
               {testingEmail ? 'Testing...' : 'Test Email'}
             </button>
           </div>
+        </div>
 
-          {/* Test WhatsApp */}
+        {/* Test WhatsApp */}
+        <div className="p-6 bg-white rounded-lg border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="font-medium text-gray-900 mb-1">Twilio / WhatsApp</h3>
+              <h3 className="font-medium text-gray-900 mb-1 flex items-center gap-2">
+                <span className="text-2xl">💚</span>
+                Twilio / WhatsApp
+              </h3>
               <p className="text-sm text-gray-600 mb-3">
                 Testa la connessione a Twilio per l'invio di messaggi WhatsApp
               </p>
@@ -325,8 +324,61 @@ const SettingsPanel = () => {
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* Info Box */}
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Impostazioni</h1>
+        <p className="text-gray-600">Configura il comportamento del sistema</p>
+      </div>
+
+      {/* P2.2: Tab Navigation */}
+      <div className="mb-6 border-b border-gray-200">
+        <div className="flex gap-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === tab.key
+                  ? 'border-christmas-green text-christmas-green'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              <span className="text-xl">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Description */}
+      <div className="mb-6">
+        {tabs.map((tab) => (
+          activeTab === tab.key && (
+            <p key={tab.key} className="text-sm text-gray-600">
+              {tab.description}
+            </p>
+          )
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+          </div>
+        </div>
+      ) : (
+        renderTabContent()
+      )}
+
+      {/* P2.2: Info Box - General help message */}
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
         <div className="flex gap-3">
           <div className="text-2xl">ℹ️</div>
