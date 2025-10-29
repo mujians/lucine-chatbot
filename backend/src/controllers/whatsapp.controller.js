@@ -351,7 +351,6 @@ async function notifyAvailableOperators(sessionId, userName, message) {
   try {
     const operators = await prisma.operator.findMany({
       where: {
-        isOnline: true,
         isAvailable: true,
       },
       select: {

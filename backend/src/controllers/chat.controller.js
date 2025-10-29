@@ -182,28 +182,15 @@ export const requestOperator = async (req, res) => {
 
     // Check if any operators are online AND available
 
-    // DEBUG: Check ALL operators first
-    const allOperators = await prisma.operator.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isOnline: true,
-        isAvailable: true,
-        lastSeenAt: true,
-      },
-    });
-    console.log('🔍 DEBUG - ALL OPERATORS:', JSON.stringify(allOperators, null, 2));
-
+    // Find available operators (only check isAvailable - isOnline removed)
     const availableOperators = await prisma.operator.findMany({
       where: {
-        isOnline: true,      // Connected to dashboard
-        isAvailable: true,   // Available to receive new chats
+        isAvailable: true,   // Operator marked as available
       },
       orderBy: { totalChatsHandled: 'asc' }, // Least busy first
     });
 
-    console.log(`✅ AVAILABLE OPERATORS COUNT: ${availableOperators.length}`);
+    console.log(`✅ AVAILABLE OPERATORS: ${availableOperators.length} found`);
 
     if (availableOperators.length === 0) {
       // No operators available - suggest ticket
