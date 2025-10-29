@@ -21,6 +21,17 @@ export function setupWebSocketHandlers(io) {
       console.log(`👤 Operator ${operatorId} left room`);
     });
 
+    // Dashboard room joining
+    socket.on('join_dashboard', () => {
+      socket.join('dashboard');
+      console.log('📊 Dashboard client joined');
+    });
+
+    socket.on('leave_dashboard', () => {
+      socket.leave('dashboard');
+      console.log('📊 Dashboard client left');
+    });
+
     // Join chat session room
     socket.on('join_chat', (data) => {
       const { sessionId } = data;

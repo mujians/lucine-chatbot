@@ -18,6 +18,14 @@ export const createSession = async (req, res) => {
       },
     });
 
+    // Notify dashboard of new chat
+    io.to('dashboard').emit('new_chat_created', {
+      sessionId: session.id,
+      userName: session.userName,
+      status: session.status,
+      createdAt: session.createdAt,
+    });
+
     res.json({
       success: true,
       data: session,
@@ -117,7 +125,7 @@ export const sendUserMessage = async (req, res) => {
 
     // If status is WITH_OPERATOR, forward to operator via WebSocket
     if (session.status === 'WITH_OPERATOR' && session.operatorId) {
-      io.to(`operator:${session.operatorId}`).emit('user_message', {
+      io.to(`operator_${session.operatorId}`).emit('user_message', {
         sessionId: sessionId,
         userName: session.userName,
         message: userMessage,
@@ -240,7 +248,7 @@ export const requestOperator = async (req, res) => {
     });
 
     // Notify operator via WebSocket
-    io.to(`operator:${assignedOperator.id}`).emit('new_chat_request', {
+    io.to(`operator_${assignedOperator.id}`).emit('new_chat_request', {
       sessionId: sessionId,
       userName: session.userName,
       lastMessage: messages[messages.length - 2]?.content || '',
@@ -249,6 +257,13 @@ export const requestOperator = async (req, res) => {
     // Notify dashboard
     io.to('dashboard').emit('chat_assigned', {
       sessionId: sessionId,
+      operatorId: assignedOperator.id,
+    });
+
+    // Notify widget user that operator joined
+    io.to(`chat_${sessionId}`).emit('operator_assigned', {
+      sessionId: sessionId,
+      operatorName: assignedOperator.name,
       operatorId: assignedOperator.id,
     });
 
