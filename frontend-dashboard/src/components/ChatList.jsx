@@ -11,6 +11,9 @@ const ChatList = ({ onSelectChat }) => {
   const [filter, setFilter] = useState('ALL'); // ALL, WAITING, ACTIVE, WITH_OPERATOR
   const [loading, setLoading] = useState(true);
   const [selectedChatId, setSelectedChatId] = useState(null);
+  // P2.4: Bulk actions state
+  const [selectedChats, setSelectedChats] = useState(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   useEffect(() => {
     fetchChats();
@@ -137,14 +140,111 @@ const ChatList = ({ onSelectChat }) => {
     onSelectChat?.(chat);
   };
 
+  // P2.4: Bulk selection handlers
+  const toggleChatSelection = (chatId) => {
+    const newSelection = new Set(selectedChats);
+    if (newSelection.has(chatId)) {
+      newSelection.delete(chatId);
+    } else {
+      newSelection.add(chatId);
+    }
+    setSelectedChats(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedChats.size === filteredChats.length) {
+      setSelectedChats(new Set());
+    } else {
+      setSelectedChats(new Set(filteredChats.map((c) => c.id)));
+    }
+  };
+
+  // P2.4: Bulk action handlers
+  const handleBulkArchive = async () => {
+    if (!confirm(`Archiviare ${selectedChats.size} chat?`)) return;
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        Array.from(selectedChats).map((chatId) =>
+          axios.post(`/api/chat/sessions/${chatId}/archive`)
+        )
+      );
+      fetchChats();
+      setSelectedChats(new Set());
+    } catch (error) {
+      console.error('Bulk archive error:', error);
+      alert('Errore durante archiviazione');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkClose = async () => {
+    if (!confirm(`Chiudere ${selectedChats.size} chat?`)) return;
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        Array.from(selectedChats).map((chatId) =>
+          axios.post(`/api/chat/session/${chatId}/close`)
+        )
+      );
+      fetchChats();
+      setSelectedChats(new Set());
+    } catch (error) {
+      console.error('Bulk close error:', error);
+      alert('Errore durante chiusura');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Eliminare ${selectedChats.size} chat? Questa azione è irreversibile.`)) return;
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        Array.from(selectedChats).map((chatId) =>
+          axios.delete(`/api/chat/sessions/${chatId}`)
+        )
+      );
+      fetchChats();
+      setSelectedChats(new Set());
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      alert('Errore durante eliminazione');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-200">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Chat Attive
-          </h2>
+          <div className="flex items-center gap-3">
+            {/* P2.4: Select All Checkbox */}
+            {filteredChats.length > 0 && (
+              <input
+                type="checkbox"
+                checked={selectedChats.size === filteredChats.length && filteredChats.length > 0}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 text-christmas-green border-gray-300 rounded focus:ring-christmas-green cursor-pointer"
+                title="Seleziona tutto"
+              />
+            )}
+            <h2 className="text-lg font-semibold text-gray-900">
+              Chat Attive
+              {selectedChats.size > 0 && (
+                <span className="ml-2 text-sm text-gray-600">
+                  ({selectedChats.size} selezionate)
+                </span>
+              )}
+            </h2>
+          </div>
           {/* P13: Total Unread Badge */}
           {(() => {
             const totalUnread = chats.reduce((sum, chat) => sum + (chat.unreadMessageCount || 0), 0);
@@ -155,6 +255,46 @@ const ChatList = ({ onSelectChat }) => {
             ) : null;
           })()}
         </div>
+
+        {/* P2.4: Bulk Actions Toolbar */}
+        {selectedChats.size > 0 && (
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedChats.size} chat selezionate
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBulkClose}
+                  disabled={bulkActionLoading}
+                  className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors disabled:opacity-50"
+                >
+                  Chiudi
+                </button>
+                <button
+                  onClick={handleBulkArchive}
+                  disabled={bulkActionLoading}
+                  className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  Archivia
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkActionLoading}
+                  className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  Elimina
+                </button>
+                <button
+                  onClick={() => setSelectedChats(new Set())}
+                  className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                >
+                  Annulla
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative mb-3">
@@ -212,26 +352,42 @@ const ChatList = ({ onSelectChat }) => {
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredChats.map((chat) => (
-              <button
+              <div
                 key={chat.id}
-                onClick={() => handleChatClick(chat)}
-                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
+                className={`flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors ${
                   selectedChatId === chat.id ? 'bg-blue-50 border-l-4 border-christmas-green' : ''
                 }`}
               >
-                {/* Chat Header */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                      {chat.userName || 'Utente Anonimo'}
-                      {chat.operatorId && (
-                        <span className="text-xs text-gray-500">
-                          con {chat.operator?.name || 'Operatore'}
-                        </span>
-                      )}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1">
-                      ID: {chat.id.substring(0, 8)}...
+                {/* P2.4: Checkbox for bulk selection */}
+                <input
+                  type="checkbox"
+                  checked={selectedChats.has(chat.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleChatSelection(chat.id);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1 w-4 h-4 text-christmas-green border-gray-300 rounded focus:ring-christmas-green cursor-pointer flex-shrink-0"
+                />
+
+                {/* Chat Content - Clickable to open */}
+                <button
+                  onClick={() => handleChatClick(chat)}
+                  className="flex-1 text-left"
+                >
+                  {/* Chat Header */}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                        {chat.userName || 'Utente Anonimo'}
+                        {chat.operatorId && (
+                          <span className="text-xs text-gray-500">
+                            con {chat.operator?.name || 'Operatore'}
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ID: {chat.id.substring(0, 8)}...
                     </p>
                   </div>
                   <span className="text-xs text-gray-400">
@@ -271,7 +427,8 @@ const ChatList = ({ onSelectChat }) => {
                     </span>
                   )}
                 </div>
-              </button>
+                </button>
+              </div>
             ))}
           </div>
         )}
