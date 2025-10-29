@@ -16,6 +16,9 @@ import {
   markMessagesAsRead,
   updatePriority,
   updateTags,
+  addInternalNote,
+  updateInternalNote,
+  deleteInternalNote,
 } from '../controllers/chat.controller.js';
 import { convertChatToTicket } from '../controllers/ticket.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
@@ -44,5 +47,10 @@ router.post('/session/:sessionId/convert-to-ticket', authenticateToken, convertC
 // P1.8: Priority and Tags routes
 router.put('/sessions/:sessionId/priority', authenticateToken, updatePriority);
 router.put('/sessions/:sessionId/tags', authenticateToken, updateTags);
+
+// P0.3: Internal Notes routes
+router.post('/sessions/:sessionId/notes', authenticateToken, addInternalNote);
+router.put('/sessions/:sessionId/notes/:noteId', authenticateToken, updateInternalNote);
+router.delete('/sessions/:sessionId/notes/:noteId', authenticateToken, deleteInternalNote);
 
 export default router;

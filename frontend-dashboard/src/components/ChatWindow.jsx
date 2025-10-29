@@ -28,6 +28,16 @@ const ChatWindow = ({ chat, onClose }) => {
   const [priority, setPriority] = useState(chat?.priority || 'NORMAL');
   const [tags, setTags] = useState(chat?.tags ? JSON.parse(chat.tags) : []);
   const [newTag, setNewTag] = useState('');
+
+  // P0.3: Internal Notes
+  const [internalNotes, setInternalNotes] = useState(
+    chat?.internalNotes ? JSON.parse(chat.internalNotes) : []
+  );
+  const [newNote, setNewNote] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [showNotesPanel, setShowNotesPanel] = useState(false);
+
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null); // P0.5: For debouncing typing indicator
 
@@ -252,6 +262,66 @@ const ChatWindow = ({ chat, onClose }) => {
     } catch (error) {
       console.error('Error removing tag:', error);
       alert('Errore rimozione tag');
+    }
+  };
+
+  // P0.3: Add internal note
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    try {
+      const response = await axios.post(`/api/chat/sessions/${chat.id}/notes`, {
+        content: newNote.trim(),
+      });
+      setInternalNotes((prev) => [...prev, response.data.data.note]);
+      setNewNote('');
+      console.log('✅ Internal note added');
+    } catch (error) {
+      console.error('Error adding note:', error);
+      alert('Errore aggiunta nota');
+    }
+  };
+
+  // P0.3: Start editing note
+  const handleStartEditNote = (note) => {
+    setEditingNoteId(note.id);
+    setEditingNoteContent(note.content);
+  };
+
+  // P0.3: Save edited note
+  const handleSaveEditNote = async (noteId) => {
+    if (!editingNoteContent.trim()) return;
+    try {
+      const response = await axios.put(`/api/chat/sessions/${chat.id}/notes/${noteId}`, {
+        content: editingNoteContent.trim(),
+      });
+      setInternalNotes((prev) =>
+        prev.map((note) => (note.id === noteId ? response.data.data.note : note))
+      );
+      setEditingNoteId(null);
+      setEditingNoteContent('');
+      console.log('✅ Internal note updated');
+    } catch (error) {
+      console.error('Error updating note:', error);
+      alert('Errore aggiornamento nota');
+    }
+  };
+
+  // P0.3: Cancel editing
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditingNoteContent('');
+  };
+
+  // P0.3: Delete internal note
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('Sei sicuro di voler eliminare questa nota?')) return;
+    try {
+      await axios.delete(`/api/chat/sessions/${chat.id}/notes/${noteId}`);
+      setInternalNotes((prev) => prev.filter((note) => note.id !== noteId));
+      console.log('✅ Internal note deleted');
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      alert('Errore eliminazione nota');
     }
   };
 
@@ -509,6 +579,143 @@ const ChatWindow = ({ chat, onClose }) => {
             📤 Invia
           </button>
         </form>
+      </div>
+
+      {/* P0.3: Internal Notes Section */}
+      <div className="border-t border-gray-200 bg-gray-50">
+        <button
+          onClick={() => setShowNotesPanel(!showNotesPanel)}
+          className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">
+              📝 Note Interne Operatore
+            </span>
+            {internalNotes.length > 0 && (
+              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                {internalNotes.length}
+              </span>
+            )}
+          </div>
+          <span className="text-gray-400">
+            {showNotesPanel ? '▼' : '▶'}
+          </span>
+        </button>
+
+        {showNotesPanel && (
+          <div className="px-6 pb-4 max-w-4xl mx-auto">
+            {/* Add New Note */}
+            <div className="mb-4">
+              <div className="flex gap-2">
+                <textarea
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddNote();
+                    }
+                  }}
+                  placeholder="Aggiungi una nota privata (visibile solo agli operatori)..."
+                  rows={2}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:outline-none resize-none"
+                />
+                <button
+                  onClick={handleAddNote}
+                  disabled={!newNote.trim()}
+                  className="px-4 py-2 bg-yellow-500 text-white font-medium rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  + Aggiungi
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Le note interne sono visibili solo agli operatori, non agli utenti
+              </p>
+            </div>
+
+            {/* Notes List */}
+            <div className="space-y-3">
+              {internalNotes.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  Nessuna nota interna. Aggiungi note per condividere informazioni con altri operatori.
+                </p>
+              ) : (
+                internalNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="bg-yellow-50 border border-yellow-200 rounded-lg p-3"
+                  >
+                    {editingNoteId === note.id ? (
+                      // Edit Mode
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingNoteContent}
+                          onChange={(e) => setEditingNoteContent(e.target.value)}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:outline-none resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveEditNote(note.id)}
+                            className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                          >
+                            Salva
+                          </button>
+                          <button
+                            onClick={handleCancelEditNote}
+                            className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                          >
+                            Annulla
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View Mode
+                      <>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-gray-900">
+                                {note.operatorName}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(note.createdAt).toLocaleString('it-IT')}
+                              </span>
+                              {note.updatedAt && (
+                                <span className="text-xs text-gray-400 italic">
+                                  (modificato)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleStartEditNote(note)}
+                              className="p-1 text-gray-600 hover:text-yellow-600 transition-colors"
+                              title="Modifica nota"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="p-1 text-gray-600 hover:text-red-600 transition-colors"
+                              title="Elimina nota"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {note.content}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Convert to Ticket Modal */}

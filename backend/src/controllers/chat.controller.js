@@ -927,3 +927,180 @@ export const updateTags = async (req, res) => {
     });
   }
 };
+
+/**
+ * P0.3: Add internal note to chat
+ * POST /api/chat/sessions/:sessionId/notes
+ */
+export const addInternalNote = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim() === '') {
+      return res.status(400).json({
+        error: { message: 'Note content is required' },
+      });
+    }
+
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    const notes = JSON.parse(session.internalNotes || '[]');
+
+    const newNote = {
+      id: Date.now().toString(),
+      content: content.trim(),
+      operatorId: req.operator.id,
+      operatorName: req.operator.name,
+      createdAt: new Date().toISOString(),
+    };
+
+    notes.push(newNote);
+
+    const updated = await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { internalNotes: JSON.stringify(notes) },
+    });
+
+    console.log(`✅ P0.3: Internal note added to chat ${sessionId} by ${req.operator.name}`);
+
+    res.json({
+      success: true,
+      data: { note: newNote, session: updated },
+      message: 'Internal note added successfully',
+    });
+  } catch (error) {
+    console.error('Add internal note error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * P0.3: Update internal note
+ * PUT /api/chat/sessions/:sessionId/notes/:noteId
+ */
+export const updateInternalNote = async (req, res) => {
+  try {
+    const { sessionId, noteId } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim() === '') {
+      return res.status(400).json({
+        error: { message: 'Note content is required' },
+      });
+    }
+
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    const notes = JSON.parse(session.internalNotes || '[]');
+    const noteIndex = notes.findIndex((n) => n.id === noteId);
+
+    if (noteIndex === -1) {
+      return res.status(404).json({
+        error: { message: 'Note not found' },
+      });
+    }
+
+    // Only allow operator to edit their own notes
+    if (notes[noteIndex].operatorId !== req.operator.id) {
+      return res.status(403).json({
+        error: { message: 'You can only edit your own notes' },
+      });
+    }
+
+    notes[noteIndex].content = content.trim();
+    notes[noteIndex].updatedAt = new Date().toISOString();
+
+    const updated = await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { internalNotes: JSON.stringify(notes) },
+    });
+
+    console.log(`✅ P0.3: Internal note ${noteId} updated in chat ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: { note: notes[noteIndex], session: updated },
+      message: 'Internal note updated successfully',
+    });
+  } catch (error) {
+    console.error('Update internal note error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * P0.3: Delete internal note
+ * DELETE /api/chat/sessions/:sessionId/notes/:noteId
+ */
+export const deleteInternalNote = async (req, res) => {
+  try {
+    const { sessionId, noteId } = req.params;
+
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    const notes = JSON.parse(session.internalNotes || '[]');
+    const noteIndex = notes.findIndex((n) => n.id === noteId);
+
+    if (noteIndex === -1) {
+      return res.status(404).json({
+        error: { message: 'Note not found' },
+      });
+    }
+
+    // Only allow operator to delete their own notes
+    if (notes[noteIndex].operatorId !== req.operator.id) {
+      return res.status(403).json({
+        error: { message: 'You can only delete your own notes' },
+      });
+    }
+
+    notes.splice(noteIndex, 1);
+
+    const updated = await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { internalNotes: JSON.stringify(notes) },
+    });
+
+    console.log(`✅ P0.3: Internal note ${noteId} deleted from chat ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: { session: updated },
+      message: 'Internal note deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete internal note error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};

@@ -133,6 +133,9 @@ model ChatSession {
   priority                String   @default("NORMAL")  // LOW, NORMAL, HIGH, URGENT
   tags                    Json     @default("[]")  // Array of string tags
 
+  // P0.3: Internal Notes
+  internalNotes           Json     @default("[]")  // Array of internal notes (operator-only)
+
   // Timestamps
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
