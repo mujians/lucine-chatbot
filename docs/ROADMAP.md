@@ -226,6 +226,61 @@ Improvement non bloccanti ma importanti per experience.
 - **File**: `frontend-dashboard/src/components/ChatWindow.jsx:48-62`
 - **Commit**: c6164b2
 
+### ✅ P0.5 - Typing Indicator [COMPLETATO - 29/10/2025]
+- **Status**: ✅ **COMPLETATO** (commits 7f7f4fb, 408da10)
+- **Issue**: Nessun feedback visivo durante digitazione, causa ansia utente
+- **Impact**: 🟡 MEDIUM - UX improvement significativo
+- **Fix Applicato**:
+  Backend (websocket.service.js):
+  1. ✅ Socket handlers per user_typing e operator_typing
+  2. ✅ Relay events tra user e operator rooms
+
+  Dashboard (ChatWindow.jsx):
+  3. ✅ Emit operator_typing quando operatore digita (debounced 1s)
+  4. ✅ Listen user_typing con auto-hide dopo 3s
+  5. ✅ UI "Utente sta scrivendo..." con dots animati
+
+  Widget (chatbot-popup.liquid):
+  6. ✅ Emit user_typing quando utente digita (debounced 1s)
+  7. ✅ Listen operator_typing
+  8. ✅ CSS animation per typing dots con bounce
+  9. ✅ showTypingIndicator function con nome operatore
+- **Files**:
+  - Backend: `backend/src/services/websocket.service.js`
+  - Dashboard: `frontend-dashboard/src/components/ChatWindow.jsx`
+  - Widget: `snippets/chatbot-popup.liquid`
+- **Commits**: 7f7f4fb (backend+dashboard), 408da10 (widget)
+- **Benefit**: Feedback real-time, riduce ansia d'attesa, UX professionale
+
+### ✅ P1.8 - Chat Priority/Tags [COMPLETATO - 29/10/2025]
+- **Status**: ✅ **COMPLETATO** (commit 1f5d560)
+- **Issue**: Impossibile organizzare e prioritizzare chat
+- **Impact**: 🟡 MEDIUM - Organizzazione caotica con molte chat
+- **Fix Applicato**:
+  Database:
+  1. ✅ Campo priority (LOW/NORMAL/HIGH/URGENT) con default NORMAL
+  2. ✅ Campo tags (JSON array)
+  3. ✅ Index su priority per performance
+
+  Backend:
+  4. ✅ PUT /api/chat/sessions/:sessionId/priority
+  5. ✅ PUT /api/chat/sessions/:sessionId/tags
+  6. ✅ Validation priority e tags format
+
+  Dashboard:
+  7. ✅ Priority dropdown con emoji indicators
+  8. ✅ Tags chips con remove button
+  9. ✅ Add tag input con Enter support
+  10. ✅ Real-time updates
+- **Files**:
+  - `backend/prisma/schema.prisma`
+  - `backend/prisma/migrations/20251029_add_priority_tags/`
+  - `backend/src/controllers/chat.controller.js`
+  - `backend/src/routes/chat.routes.js`
+  - `frontend-dashboard/src/components/ChatWindow.jsx`
+- **Commit**: 1f5d560
+- **Benefit**: Organizzazione efficiente, priorità urgenze, workflow ottimizzato
+
 ---
 
 ## 🔴 P0.2 - CRITICAL FEATURE (Promoted from P2.5)
