@@ -356,35 +356,3 @@ export const testWhatsAppConnection = async (req, res) => {
     });
   }
 };
-
-/**
- * Test SMTP/Email connection (P2.3)
- * POST /api/settings/test-email
- */
-export const testEmailConnection = async (req, res) => {
-  try {
-    const result = await emailService.testConnection();
-
-    if (result) {
-      res.json({
-        success: true,
-        message: 'Email connection successful',
-      });
-    } else {
-      res.status(500).json({
-        error: {
-          message: 'Email connection failed',
-          details: 'Unable to connect to SMTP server',
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Test email connection error:', error);
-    res.status(500).json({
-      error: {
-        message: 'Email connection test failed',
-        details: error.message,
-      },
-    });
-  }
-};
