@@ -81,6 +81,11 @@ export const sendUserMessage = async (req, res) => {
     // Get session
     const session = await prisma.chatSession.findUnique({
       where: { id: sessionId },
+      include: {
+        operator: {
+          select: { id: true, name: true, email: true }
+        }
+      }
     });
 
     if (!session) {
@@ -120,7 +125,12 @@ export const sendUserMessage = async (req, res) => {
 
       return res.json({
         success: true,
-        data: { message: userMessage, aiResponse: null },
+        data: {
+          message: userMessage,
+          aiResponse: null,
+          withOperator: true,
+          operatorName: session.operator?.name || 'Operatore'
+        },
       });
     }
 
