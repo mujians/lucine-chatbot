@@ -38,7 +38,12 @@ const ChatWindow = ({ chat, onClose }) => {
       auth: { token: localStorage.getItem('auth_token') },
     });
 
-    newSocket.emit('operator_join', { sessionId: chat.id });
+    // Join operator room and chat session room
+    const operatorId = localStorage.getItem('operator_id');
+    if (operatorId) {
+      newSocket.emit('operator_join', { operatorId: operatorId });
+    }
+    newSocket.emit('join_chat', { sessionId: chat.id });
 
     newSocket.on('new_message', (message) => {
       if (message.sessionId === chat.id) {
@@ -49,7 +54,11 @@ const ChatWindow = ({ chat, onClose }) => {
     setSocket(newSocket);
 
     return () => {
-      newSocket.emit('operator_leave', { sessionId: chat.id });
+      const operatorId = localStorage.getItem('operator_id');
+      if (operatorId) {
+        newSocket.emit('operator_leave', { operatorId: operatorId });
+      }
+      newSocket.emit('leave_chat', { sessionId: chat.id });
       newSocket.disconnect();
     };
   }, [chat]);
@@ -116,9 +125,8 @@ const ChatWindow = ({ chat, onClose }) => {
 
   const handleOpenTransferModal = async () => {
     try {
-      const response = await axios.get(`/api/operators`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // axios instance already adds Authorization header via interceptor
+      const response = await axios.get(`/api/operators`);
 
       // Filter out current operator and offline operators
       const currentOperatorId = chat.operatorId;

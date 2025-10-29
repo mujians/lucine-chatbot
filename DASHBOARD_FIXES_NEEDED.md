@@ -113,13 +113,27 @@ newSocket.emit('join_chat', { sessionId: chat.id });
 
 ---
 
-## Summary of Changes Needed:
+## Summary of Changes:
 
 1. ✅ axios.js created (DONE)
-2. ⚠️ ChatList.jsx - Add Socket.IO listeners
-3. ⚠️ ChatList.jsx - Fix token usage
-4. ⚠️ ChatWindow.jsx - Fix token usage
-5. ⚠️ ChatWindow.jsx - Fix operator_join emit
-6. ⚠️ ChatWindow.jsx - Add join_chat emit
+2. ✅ ChatList.jsx - Added Socket.IO listeners (DONE)
+3. ✅ ChatList.jsx - Fixed token usage (DONE)
+4. ✅ ChatWindow.jsx - Fixed token usage (DONE)
+5. ✅ ChatWindow.jsx - Fixed operator_join emit (DONE)
+6. ✅ ChatWindow.jsx - Added join_chat emit (DONE)
 
-**Note**: The user needs to manually apply these fixes to the Dashboard as the files are too large to edit automatically. Alternatively, I can read specific sections and apply the fixes if needed.
+**Status**: ALL DASHBOARD FIXES COMPLETED ✅
+
+## Changes Applied:
+
+### ChatList.jsx (COMPLETED)
+- Added Socket.IO connection and listeners for real-time updates
+- Fixed token usage by using axios interceptor
+- Dashboard now updates automatically on new chats, assignments, and closures
+
+### ChatWindow.jsx (COMPLETED)
+- Fixed `operator_join` to send `operatorId` instead of `sessionId`
+- Fixed `operator_leave` to send `operatorId` instead of `sessionId`
+- Added `join_chat` emit when opening chat window
+- Added `leave_chat` emit when closing chat window
+- Fixed undefined `token` in handleOpenTransferModal by using axios interceptor

@@ -1,8 +1,329 @@
 # Stato Attuale del Progetto - 29 Ottobre 2025
 
-**Ultimo aggiornamento**: 29 Ottobre 2025, ore 14:10
+**Ultimo aggiornamento**: 29 Ottobre 2025, ore 19:45
 
-## 🎯 Sessione Corrente: Fix Bugs Critici Comunicazione Operatore-Utente - COMPLETATA ✅
+## 🎯 Sessione Corrente: Analisi Sistema Completo e Fix Architetturali - COMPLETATA ✅
+
+**Obiettivo**: Analisi completa del sistema (frontend, backend, SQL, endpoints, widget) per identificare e risolvere TUTTI i problemi tecnici, funzionali e UX
+
+**Tasks completati**:
+- [x] P1 CRITICAL: axios.js file mancante nella Dashboard ✅ COMPLETATO
+- [x] P2: Fix Socket room name mismatch (operator: vs operator_) ✅ COMPLETATO
+- [x] P3: Dashboard Socket.IO listeners aggiunti ✅ COMPLETATO
+- [x] P4: WebSocket service dashboard room handler ✅ COMPLETATO
+- [x] P5: Backend emette operator_assigned al widget ✅ COMPLETATO
+- [x] P6: Backend emette new_chat_created alla dashboard ✅ COMPLETATO
+- [x] P7: Fix messaggio widget ingannevole ✅ COMPLETATO
+- [x] P8-P10: ChatList e ChatWindow token e operator_join fixes ✅ COMPLETATO
+
+**Problemi Identificati e Risolti**:
+1. ✅ Dashboard completamente non funzionante (axios.js mancante)
+2. ✅ Messaggi operatore non arrivano agli utenti (endpoint mancante)
+3. ✅ Dashboard non riceve aggiornamenti real-time (Socket listeners mancanti)
+4. ✅ Socket room names inconsistenti tra backend e frontend
+5. ✅ Backend non notifica widget quando operatore si unisce
+6. ✅ Backend non notifica dashboard quando si crea nuova chat
+7. ✅ Widget mostra messaggio ingannevole "Admin si è unito" prima che operatore apra chat
+8. ✅ ChatWindow usa variabile token undefined
+9. ✅ operator_join/leave inviano sessionId invece di operatorId
+
+---
+
+## 🔥 FIXES DETTAGLIATI - Sessione Corrente
+
+### P1: Dashboard axios.js File Mancante (CRITICAL)
+**Commit**: TBD
+**Severity**: 🔴 CRITICAL - Dashboard non si caricava affatto
+**Impact**: Dashboard completamente non funzionante
+
+**Root Cause**:
+- Tutti i componenti Dashboard importavano `import axios from '../lib/axios'`
+- File `/frontend-dashboard/src/lib/axios.js` NON esisteva
+- Dashboard non riusciva neanche a caricare
+
+**Fix Applicato**:
+```javascript
+// Created: frontend-dashboard/src/lib/axios.js
+import axios from 'axios';
+
+const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://chatbot-lucy-2025.onrender.com',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Request interceptor - add auth token
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor - handle 401
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+**Files Creati**:
+- `frontend-dashboard/src/lib/axios.js`
+
+---
+
+### P2: Socket Room Name Mismatch
+**Commit**: TBD
+**Severity**: 🔴 CRITICAL
+**Impact**: Dashboard non riceveva notifiche per operatori
+
+**Root Cause**:
+- Backend emetteva a `operator:${operatorId}` (con due punti)
+- Dashboard si univa a `operator_${operatorId}` (con underscore)
+- Risultato: messaggi mai ricevuti
+
+**Fix Applicato**:
+```javascript
+// PRIMA (backend/src/controllers/chat.controller.js):
+io.to(`operator:${session.operatorId}`).emit('user_message', {...});
+
+// DOPO:
+io.to(`operator_${session.operatorId}`).emit('user_message', {...});
+```
+
+**Files Modificati**:
+- `backend/src/controllers/chat.controller.js` (lines 120, 243)
+
+---
+
+### P3: Dashboard Socket.IO Listeners Mancanti
+**Commit**: TBD
+**Severity**: 🔴 CRITICAL
+**Impact**: Dashboard non riceveva aggiornamenti real-time
+
+**Root Cause**:
+- ChatList.jsx non aveva Socket.IO connection
+- Dashboard non si aggiornava quando nuove chat create o assegnate
+- Operatori dovevano refresh manuale
+
+**Fix Applicato**:
+```javascript
+// frontend-dashboard/src/components/ChatList.jsx
+const WS_URL = import.meta.env.VITE_WS_URL || 'https://chatbot-lucy-2025.onrender.com';
+
+useEffect(() => {
+  fetchChats();
+
+  const socket = io(WS_URL);
+  socket.emit('join_dashboard');
+
+  socket.on('new_chat_created', (data) => {
+    console.log('🆕 New chat created:', data);
+    fetchChats();
+  });
+
+  socket.on('new_chat_request', (data) => {
+    console.log('🔔 New chat request:', data);
+    fetchChats();
+  });
+
+  socket.on('chat_assigned', (data) => {
+    console.log('👤 Chat assigned:', data);
+    fetchChats();
+  });
+
+  socket.on('chat_closed', (data) => {
+    console.log('✅ Chat closed:', data);
+    fetchChats();
+  });
+
+  return () => {
+    socket.emit('leave_dashboard');
+    socket.disconnect();
+  };
+}, []);
+```
+
+**Files Modificati**:
+- `frontend-dashboard/src/components/ChatList.jsx` (lines 1-55)
+
+---
+
+### P4: WebSocket Service Dashboard Room Handler
+**Commit**: TBD
+**Severity**: 🔴 HIGH
+**Impact**: Backend non gestiva room 'dashboard'
+
+**Root Cause**:
+- Dashboard emetteva `join_dashboard` e `leave_dashboard`
+- Backend WebSocket service NON aveva handler per questi eventi
+- Socket connection falliva silenziosamente
+
+**Fix Applicato**:
+```javascript
+// backend/src/services/websocket.service.js
+socket.on('join_dashboard', () => {
+  socket.join('dashboard');
+  console.log('📊 Dashboard client joined');
+});
+
+socket.on('leave_dashboard', () => {
+  socket.leave('dashboard');
+  console.log('📊 Dashboard client left');
+});
+```
+
+**Files Modificati**:
+- `backend/src/services/websocket.service.js` (lines 24-33)
+
+---
+
+### P5: Backend Non Emette operator_assigned al Widget
+**Commit**: TBD
+**Severity**: 🟡 MEDIUM
+**Impact**: Widget non riceve notifica quando operatore si unisce
+
+**Root Cause**:
+- Backend assegnava operatore ma non notificava il widget
+- Widget non mostrava messaggio "Operatore si è unito"
+
+**Fix Applicato**:
+```javascript
+// backend/src/controllers/chat.controller.js
+// After assigning operator
+io.to(`chat_${sessionId}`).emit('operator_assigned', {
+  sessionId: sessionId,
+  operatorName: assignedOperator.name,
+  operatorId: assignedOperator.id,
+});
+```
+
+**Files Modificati**:
+- `backend/src/controllers/chat.controller.js` (lines 255-260)
+
+---
+
+### P6: Backend Non Emette new_chat_created
+**Commit**: TBD
+**Severity**: 🟡 MEDIUM
+**Impact**: Dashboard non si aggiorna quando si crea nuova chat
+
+**Root Cause**:
+- Backend creava sessione chat ma non notificava dashboard
+- Dashboard doveva fare polling ogni 30s
+
+**Fix Applicato**:
+```javascript
+// backend/src/controllers/chat.controller.js - createOrGetSession
+io.to('dashboard').emit('new_chat_created', {
+  sessionId: session.id,
+  userName: session.userName,
+  status: session.status,
+  createdAt: session.createdAt,
+});
+```
+
+**Files Modificati**:
+- `backend/src/controllers/chat.controller.js` (lines 21-27)
+
+---
+
+### P7: Widget Messaggio Ingannevole
+**Commit**: TBD
+**Severity**: 🟡 MEDIUM - UX Issue
+**Impact**: User vede "Operatore si è unito" ma operatore non ha ancora aperto chat
+
+**Root Cause**:
+- Quando operatore viene assegnato, widget mostrava immediatamente "✅ Admin Lucine si è unito alla chat!"
+- Ma operatore NON aveva ancora aperto ChatWindow
+- Messaggio ingannevole per l'utente
+
+**Fix Applicato**:
+```javascript
+// PRIMA:
+addMessage(`✅ ${operatorData.data.operator?.name || 'Un operatore'} si è unito alla chat!`, 'system');
+
+// DOPO:
+addMessage(`⏳ Ti abbiamo messo in coda. ${operatorData.data.operator?.name || 'Un operatore'} ti risponderà a breve.`, 'system');
+// isOperatorMode will be set when operator_assigned Socket event is received
+```
+
+**Files Modificati**:
+- `lucine-minimal/snippets/chatbot-popup.liquid` (lines 1019-1022)
+
+---
+
+### P8-P10: ChatList e ChatWindow Fixes
+**Commit**: TBD
+**Severity**: 🟡 MEDIUM
+**Impact**: Token undefined errors, operator_join non funzionava
+
+**Problemi**:
+1. ChatList.jsx usava `token` undefined (doveva usare axios interceptor)
+2. ChatWindow.jsx usava `token` undefined in handleOpenTransferModal
+3. ChatWindow operator_join mandava sessionId invece di operatorId
+4. ChatWindow operator_leave mandava sessionId invece di operatorId
+5. Mancava join_chat emit per entrare nella chat room
+
+**Fix Applicati**:
+
+**ChatList.jsx**:
+```javascript
+// PRIMA:
+const response = await axios.get('/api/chat/sessions', {
+  headers: { Authorization: `Bearer ${token}` }
+});
+
+// DOPO:
+const response = await axios.get('/api/chat/sessions');
+// axios interceptor aggiunge automaticamente il token
+```
+
+**ChatWindow.jsx**:
+```javascript
+// PRIMA:
+newSocket.emit('operator_join', { sessionId: chat.id });
+
+// DOPO:
+const operatorId = localStorage.getItem('operator_id');
+if (operatorId) {
+  newSocket.emit('operator_join', { operatorId: operatorId });
+}
+newSocket.emit('join_chat', { sessionId: chat.id });
+
+// PRIMA (cleanup):
+newSocket.emit('operator_leave', { sessionId: chat.id });
+
+// DOPO:
+const operatorId = localStorage.getItem('operator_id');
+if (operatorId) {
+  newSocket.emit('operator_leave', { operatorId: operatorId });
+}
+newSocket.emit('leave_chat', { sessionId: chat.id });
+
+// PRIMA (handleOpenTransferModal):
+const response = await axios.get(`/api/operators`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+// DOPO:
+const response = await axios.get(`/api/operators`);
+// axios interceptor aggiunge automaticamente il token
+```
+
+**Files Modificati**:
+- `frontend-dashboard/src/components/ChatList.jsx` (line 64)
+- `frontend-dashboard/src/components/ChatWindow.jsx` (lines 41-46, 57-62, 129)
+
+---
+
+## 🎯 Sessione Precedente: Fix Bugs Critici Comunicazione Operatore-Utente - COMPLETATA ✅
 
 **Obiettivo**: Risolvere bugs critici che impedivano la comunicazione operatore-utente
 **Tasks completati**:

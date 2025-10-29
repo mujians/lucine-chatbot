@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import axios from '../lib/axios';
 
+const WS_URL = import.meta.env.VITE_WS_URL || 'https://chatbot-lucy-2025.onrender.com';
 
 const ChatList = ({ onSelectChat }) => {
   const [chats, setChats] = useState([]);
@@ -12,8 +14,44 @@ const ChatList = ({ onSelectChat }) => {
 
   useEffect(() => {
     fetchChats();
-    const interval = setInterval(fetchChats, 5000); // Refresh every 5s
-    return () => clearInterval(interval);
+
+    // Initialize Socket.IO for real-time updates
+    const socket = io(WS_URL);
+
+    // Join dashboard room
+    socket.emit('join_dashboard');
+
+    // Listen for new chat created
+    socket.on('new_chat_created', (data) => {
+      console.log('🆕 New chat created:', data);
+      fetchChats();
+    });
+
+    // Listen for new chat requests
+    socket.on('new_chat_request', (data) => {
+      console.log('🔔 New chat request:', data);
+      fetchChats();
+    });
+
+    // Listen for chat assigned
+    socket.on('chat_assigned', (data) => {
+      console.log('👤 Chat assigned:', data);
+      fetchChats();
+    });
+
+    // Listen for chat closed
+    socket.on('chat_closed', (data) => {
+      console.log('✅ Chat closed:', data);
+      fetchChats();
+    });
+
+    const interval = setInterval(fetchChats, 30000); // Poll every 30s as fallback
+
+    return () => {
+      clearInterval(interval);
+      socket.emit('leave_dashboard');
+      socket.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -22,9 +60,8 @@ const ChatList = ({ onSelectChat }) => {
 
   const fetchChats = async () => {
     try {
-      const response = await axios.get(`/api/chat/sessions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // axios instance already adds Authorization header via interceptor
+      const response = await axios.get(`/api/chat/sessions`);
 
       setChats(response.data.data?.sessions || []);
       setLoading(false);
