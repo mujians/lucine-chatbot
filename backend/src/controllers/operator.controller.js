@@ -1,7 +1,7 @@
 import { prisma } from '../server.js';
 import { io } from '../server.js';
 import bcrypt from 'bcryptjs';
-import { sendEmailNotification } from '../services/notification.service.js';
+import { emailService } from '../services/email.service.js';
 
 /**
  * Toggle operator availability (available to receive chats)
@@ -209,11 +209,11 @@ export const createOperator = async (req, res) => {
 
     // Send welcome email with login credentials
     const dashboardUrl = process.env.DASHBOARD_URL || 'https://dashboard.lucine.it';
-    await sendEmailNotification(
-      email,
-      'Benvenuto nel Team Lucine di Natale',
-      `Ciao ${name}!\n\nSei stato aggiunto come ${role === 'ADMIN' ? 'amministratore' : 'operatore'} del sistema Lucine Chatbot.\n\nCredenziali di accesso:\nEmail: ${email}\nPassword: ${password}\n\nAccedi qui: ${dashboardUrl}\n\nCambia la tua password dopo il primo accesso.\n\nBenvenuto nel team!`
-    );
+    await emailService.sendEmail({
+      to: email,
+      subject: 'Benvenuto nel Team Lucine di Natale',
+      text: `Ciao ${name}!\n\nSei stato aggiunto come ${role === 'ADMIN' ? 'amministratore' : 'operatore'} del sistema Lucine Chatbot.\n\nCredenziali di accesso:\nEmail: ${email}\nPassword: ${password}\n\nAccedi qui: ${dashboardUrl}\n\nCambia la tua password dopo il primo accesso.\n\nBenvenuto nel team!`
+    });
 
     res.json({
       success: true,
