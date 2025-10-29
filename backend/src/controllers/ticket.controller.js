@@ -39,13 +39,49 @@ export const createTicket = async (req, res) => {
       });
     }
 
+    // Ensure chat session exists (create if missing - handles stale localStorage)
+    let session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      console.log(`⚠️ Session ${sessionId} not found in DB, creating it...`);
+      session = await prisma.chatSession.create({
+        data: {
+          id: sessionId,
+          userName: userName,
+          status: 'ACTIVE',
+          messages: JSON.stringify([]),
+        },
+      });
+    }
+
+    // Check if ticket already exists for this session
+    let ticket = await prisma.ticket.findUnique({
+      where: { sessionId },
+    });
+
+    if (ticket) {
+      console.log(`⚠️ Ticket already exists for session ${sessionId}, returning existing ticket`);
+      // Return existing ticket with its resume URL
+      const existingResumeUrl = `${process.env.SHOPIFY_SITE_URL || 'https://lucine.it'}/chat?token=${ticket.resumeToken}`;
+
+      return res.json({
+        success: true,
+        data: {
+          ticket,
+          resumeUrl: existingResumeUrl,
+        },
+      });
+    }
+
     // Generate resume token
     const resumeToken = uuidv4();
     const resumeTokenExpiresAt = new Date();
     resumeTokenExpiresAt.setDate(resumeTokenExpiresAt.getDate() + 30); // 30 days
 
     // Create ticket
-    const ticket = await prisma.ticket.create({
+    ticket = await prisma.ticket.create({
       data: {
         userName,
         contactMethod,
