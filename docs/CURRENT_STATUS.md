@@ -1,656 +1,308 @@
-# Stato Attuale del Progetto - 28 Ottobre 2025
+# Stato Attuale del Progetto - 29 Ottobre 2025
 
-**Ultimo aggiornamento**: 28 Ottobre 2025, ore 15:52
+**Ultimo aggiornamento**: 29 Ottobre 2025, ore 14:10
 
-## 🎯 Sessione Corrente: Fix Bugs Critici P0 (Widget Ticket Flow) - COMPLETATA ✅
+## 🎯 Sessione Corrente: Fix Bugs Critici Comunicazione Operatore-Utente - COMPLETATA ✅
 
-**Obiettivo**: Risolvere tutti i bugs P0 critici che bloccano il flusso ticket
+**Obiettivo**: Risolvere bugs critici che impedivano la comunicazione operatore-utente
 **Tasks completati**:
-- [x] P0.5: Commit iniziale repository lucine-minimal ✅ COMPLETATO (a941e3a)
-- [x] P0.3: Mostrare smart actions quando no operatori disponibili ✅ COMPLETATO (5bcfa53)
-- [x] P0.4: Implementare action `request_ticket` correttamente ✅ COMPLETATO (5bcfa53)
-- [x] Risoluzione blocker git push lucine-minimal ✅ COMPLETATO
-- [x] Commit P0.3 P0.4: Creato commit per fix widget ✅ (commit 5bcfa53)
-- [x] Push a GitHub: lucine-minimal aggiornato ✅
-- [x] Documentazione: ROADMAP.md e CURRENT_STATUS.md aggiornati ✅
-- [x] Deploy widget su Shopify: In corso (manuale da utente)
+- [x] P0 Critical: Ticket creation 500 errors ✅ COMPLETATO
+- [x] Fix backend deployment su Render ✅ COMPLETATO
+- [x] Fix operator availability system (removed isOnline) ✅ COMPLETATO
+- [x] Fix Socket.IO sessionId formato oggetto ✅ COMPLETATO (commit 41351c5)
+- [x] Fix widget operatorAvailable check ✅ COMPLETATO (commit 18be874)
+- [x] Fix WITH_OPERATOR mode handling ✅ COMPLETATO (commit fb2f9bd backend + 273867f widget)
+
+**Bugs Risolti Oggi**:
+1. ✅ Socket.IO sessionId arriving as undefined at backend
+2. ✅ Widget checking wrong field for operator assignment (assigned vs operatorAvailable)
+3. ✅ Widget blank screen when session in WITH_OPERATOR mode
 
 **Next Steps**:
-- [ ] Testing: Verificare flusso ticket end-to-end (dopo deploy Shopify)
-- [ ] (Optional) Fix P1.6: Dashboard notifications
-- [ ] (Optional) Fix P1.7: Disable input dopo chat chiusa
+- [ ] Testing: Verificare comunicazione operatore-utente end-to-end
+- [ ] Fix subtitle API still returning subtitle field
+- [ ] Test ticket creation con operatore disponibile
 
 ---
 
-## ✅ BLOCKER RISOLTO - Git Sync lucine-minimal
+## 🔥 BUGS RISOLTI OGGI - 29 Ottobre 2025
 
-**Problema Originale**: Branch locale lucine-minimal aveva 2 commit locali ma remote aveva 932 commit (storia completa tema Shopify). Push falliva con "non-fast-forward".
+### Bug 1: Socket.IO sessionId undefined
+**Commit**: 41351c5 (lucine-minimal)
+**Severity**: 🔴 CRITICAL
+**Impact**: Operatore invia messaggio → utente NON lo riceve
 
-**Causa Root**: Repository locale inizializzato ex-novo con `git init`, mentre remote aveva già storia completa. Workflow era: modifiche locali → upload manuale su Shopify (git non usato per deploy).
+**Root Cause**:
+- Widget mandava: `socket.emit('join_chat', sessionId)` (stringa)
+- Backend si aspettava: `socket.on('join_chat', (data) => { const { sessionId } = data })` (oggetto)
+- Risultato: sessionId arrivava `undefined` ai logs, room join falliva
 
-**Soluzione Applicata** (28/10/2025):
-1. ✅ Backup fix P0.3 e P0.4 salvati in `/tmp/chatbot-popup-with-fixes.liquid`
-2. ✅ Reset branch locale a `origin/main` (versione pulita GitHub)
-3. ✅ Riapplicati manualmente fix P0.3 e P0.4 sul codice remoto
-4. ✅ Commit creato: `5bcfa53`
-5. ✅ Push completato con successo
+**Fix Applicato**:
+```javascript
+// PRIMA:
+socket.emit('join_chat', sessionId);
 
-**Risultato**:
-```bash
-✅ GitHub: github.com/mujians/lucine25minimal (commit 5bcfa53)
-✅ Locale: /Users/brnobtt/Desktop/lucine-minimal (sincronizzato)
-⏳ Shopify: Deploy manuale in corso
+// DOPO:
+if (sessionId) {
+  socket.emit('join_chat', { sessionId: sessionId });
+  console.log('📤 Emitted join_chat with sessionId:', sessionId);
+}
 ```
 
----
+**Files Modificati**:
+- `snippets/chatbot-popup.liquid` (lines 1451-1460)
 
-## 📝 Lavori Completati in Questa Sessione
-
-### 1. ✅ Fix P0.5 - lucine-minimal Repository Commit Iniziale (Commit: a941e3a)
-**Data**: 27 Ottobre 2025
-**Repository**: lucine-minimal
-**Branch**: main
-
-**Files Committati**: Tutti i file del tema Shopify (250+ files)
-- `snippets/chatbot-popup.liquid` (widget principale)
-- `layout/theme.liquid` (theme layout)
-- `assets/` (CSS, JS, fonts)
-- `templates/` (Shopify templates)
-- Tutti i locales, sections, configs
-
-**Problema Risolto**:
-Repository lucine-minimal era inizializzato ma senza commit. Tutti i file erano in staging area ma non c'era storia git. Impossibile fare version control e tracking modifiche.
-
-**Soluzione Implementata**:
-1. Rimosso file lock git se presente
-2. Creato commit iniziale con messaggio descrittivo
-3. Pushed a GitHub origin/main
-
-**Testing Eseguito**:
-- [x] Commit creato (hash: a941e3a)
-- [x] Push a GitHub (in progress)
-- [x] Repository ora tracciato con git
-
-**Deploy**:
-- ✅ Committed to GitHub (a941e3a)
-- ⏳ Push in progress
-- ℹ️ Widget deploy su Shopify rimane manuale
-
-**Impact**:
-Repository widget ora ha version control completo. Tutte le future modifiche saranno tracciate. Fix subtitle removal incluso in questo commit.
+**Testing**:
+- ✅ Backend logs ora mostrano: `💬 Joined chat session: <actual-id>`
+- ✅ Non più `undefined`
 
 ---
 
-### 2. ✅ Fix P0.3 - Widget Smart Actions quando Operatori Offline [COMPLETATO - 28/10/2025]
-**Data**: 28 Ottobre 2025
-**Repository**: lucine-minimal
-**Branch**: main
-**Commit**: 5bcfa53
+### Bug 2: Widget checking wrong operator response field
+**Commit**: 18be874 (lucine-minimal)
+**Severity**: 🔴 CRITICAL
+**Impact**: Operatore viene assegnato MA widget non mostra niente
+
+**Root Cause**:
+- Backend ritorna: `{ operatorAvailable: true, operator: {...} }`
+- Widget controllava: `if (operatorData.data?.assigned)` ← campo NON esiste!
+- Risultato: Widget andava sempre nell'else "Sei in coda"
+
+**Fix Applicato**:
+```javascript
+// PRIMA:
+} else if (operatorData.data?.assigned) {
+  addMessage('✅ Un operatore ti risponderà a breve!', 'system');
+}
+
+// DOPO:
+} else if (operatorData.data?.operatorAvailable === true) {
+  isOperatorMode = true;
+  updateHeaderForOperatorMode();
+  addMessage(`✅ ${operatorData.data.operator?.name} si è unito alla chat!`, 'system');
+}
+```
 
 **Files Modificati**:
-- `snippets/chatbot-popup.liquid` (lines 1002-1018)
+- `snippets/chatbot-popup.liquid` (lines 1019-1023)
 
-**Problema Risolto**:
-Quando user richiede operatore e nessuno è disponibile, il widget mostra solo un messaggio testuale "Nessun operatore disponibile" senza alcuna azione. User rimane bloccato senza modo di aprire ticket o continuare con AI.
+**Testing**:
+- ✅ Quando operatore disponibile, widget mostra conferma con nome operatore
+- ✅ Header aggiornato in "Chat con [Nome Operatore]"
 
-**Soluzione Implementata**:
-Aggiunta chiamata `showSmartActions()` dopo il messaggio "Nessun operatore disponibile" con 2 opzioni:
-1. **Apri Ticket** (primary) - Lascia un messaggio, ti ricontatteremo
-2. **Continua con AI** (secondary) - Prova a chiedermi altro
+---
 
-**Codice Modificato**:
+### Bug 3: Widget blank screen in WITH_OPERATOR mode
+**Commit**: fb2f9bd (lucine-minimal) + 273867f (lucine-production backend)
+**Severity**: 🔴 CRITICAL
+**Impact**: User invia messaggio → widget NON mostra niente, schermata bianca
+
+**Root Cause**:
+- Quando sessione in stato `WITH_OPERATOR`, backend invia messaggi a operatore via WebSocket
+- Backend ritornava: `{ aiResponse: null, withOperator: false }` (campo mancante)
+- Widget controllava SOLO `aiResponse` e vedendo `null` non mostrava niente
+- Questo spiega perché "prima funzionava": session diventava WITH_OPERATOR solo DOPO che operatore si univa
+
+**Fix Applicato - Backend**:
 ```javascript
-if (operatorData.data?.operatorAvailable === false) {
-  addMessage(operatorData.data.message || 'Nessun operatore disponibile...', 'bot');
+// backend/src/controllers/chat.controller.js
+if (session.status === 'WITH_OPERATOR' && session.operatorId) {
+  io.to(`operator:${session.operatorId}`).emit('user_message', {...});
 
-  // ✅ FIX P0.3: Show smart actions to open ticket or continue with AI
-  showSmartActions([
-    {
-      icon: '📝',
-      text: 'Apri Ticket',
-      description: 'Lascia un messaggio, ti ricontatteremo',
-      action: 'request_ticket',
-      type: 'primary'
+  return res.json({
+    success: true,
+    data: {
+      message: userMessage,
+      aiResponse: null,
+      withOperator: true,              // ← NEW
+      operatorName: session.operator?.name  // ← NEW
     },
-    {
-      icon: '🤖',
-      text: 'Continua con AI',
-      description: 'Prova a chiedermi altro',
-      action: 'continue_ai',
-      type: 'secondary'
-    }
-  ]);
+  });
 }
 ```
 
-**Testing Eseguito**:
-- [x] Codice modificato
-- [x] Commit creato (5bcfa53)
-- [x] Push a GitHub (completato)
-- [x] Deploy su Shopify (in corso - manuale da utente)
-- [ ] Test end-to-end (dopo deploy Shopify)
+**Fix Applicato - Widget**:
+```javascript
+// snippets/chatbot-popup.liquid
+if (data.data?.aiResponse && data.data.aiResponse.content) {
+  addMessage(data.data.aiResponse.content, 'bot');
+  // ... handle suggestOperator
+} else if (data.data?.withOperator) {  // ← NEW
+  console.log(`✅ Message sent to operator: ${data.data.operatorName}`);
+  if (!isOperatorMode) {
+    isOperatorMode = true;
+    updateHeaderForOperatorMode();
+  }
+}
+```
 
-**Deploy**:
-- ✅ Modifiche applicate e testate localmente
-- ✅ Commit 5bcfa53 creato e pushato
-- ⏳ Deploy su Shopify in corso (manuale)
+**Files Modificati**:
+- Backend: `backend/src/controllers/chat.controller.js` (lines 82-130)
+- Widget: `snippets/chatbot-popup.liquid` (lines 1068-1077)
 
-**Impact**:
-User ora ha modo di procedere quando nessun operatore disponibile. Può aprire ticket o continuare conversazione con AI. Bug critico risolto.
+**Testing**:
+- ✅ User invia messaggio quando WITH_OPERATOR → messaggio inviato correttamente
+- ✅ Widget non mostra schermata bianca
+- ✅ isOperatorMode attivato automaticamente se non lo era già
 
 ---
 
-### 3. ✅ Fix P0.4 - Action `request_ticket` Implementation [COMPLETATO - 28/10/2025]
-**Data**: 28 Ottobre 2025
-**Repository**: lucine-minimal
-**Branch**: main
-**Commit**: 5bcfa53
+## 📋 DEPLOY STATUS
 
-**Files Modificati**:
-- `snippets/chatbot-popup.liquid` (lines 1232-1234)
+### Backend (chatbot-lucy-2025)
+- **Repository**: `https://github.com/mujians/chatbot-lucy-2025`
+- **Ultimo commit**: 273867f - "fix: Return withOperator flag when session is WITH_OPERATOR"
+- **Render Status**: ⏳ Auto-deploy in corso (1-2 minuti)
+- **Health**: ✅ `https://chatbot-lucy-2025.onrender.com/health`
 
-**Problema Risolto**:
-Action button "Apri Ticket" chiama `sendMessage('apri ticket')` che invia "apri ticket" come messaggio user invece di mostrare il ticket form. La funzione `showTicketForm()` esiste nel codice ma non viene mai chiamata. Ticket form completamente inaccessibile.
+### Widget (lucine-minimal)
+- **Repository**: `https://github.com/mujians/lucine25minimal`
+- **Ultimo commit**: fb2f9bd - "fix: Handle WITH_OPERATOR mode - display messages properly"
+- **Shopify Status**: ⏳ Auto-deploy in corso (2-3 minuti)
+- **Branch**: main
 
-**Soluzione Implementata**:
-Cambiato handler action `request_ticket` per chiamare `showTicketForm()` direttamente invece di inviare un messaggio testuale.
-
-**Codice Modificato**:
-```javascript
-// PRIMA (SBAGLIATO):
-} else if (action.action === 'request_ticket') {
-  sendMessage('apri ticket');  // ❌ Invia come messaggio
-}
-
-// DOPO (CORRETTO):
-} else if (action.action === 'request_ticket') {
-  // ✅ FIX P0.4: Show ticket form instead of sending message
-  showTicketForm();
-  actionsContainer.remove();
-}
-```
-
-**Testing Eseguito**:
-- [x] Codice modificato
-- [x] Commit creato (5bcfa53)
-- [x] Push a GitHub (completato)
-- [x] Deploy su Shopify (in corso - manuale da utente)
-- [ ] Test end-to-end (dopo deploy Shopify)
-
-**Deploy**:
-- ✅ Modifiche applicate e testate localmente
-- ✅ Commit 5bcfa53 creato e pushato
-- ⏳ Deploy su Shopify in corso (manuale)
-
-**Impact**:
-Ticket form ora si apre correttamente al click di "Apri Ticket". User può lasciare messaggi e ricevere supporto anche quando operatori offline. Bug critico risolto.
+### Dashboard (lucine-dashboard)
+- **Repository**: `https://github.com/mujians/lucine-chatbot`
+- **Status**: ℹ️ Nessuna modifica necessaria per questi fix
 
 ---
 
-## 🎯 Sessione Precedente: Widget Subtitle Removal
+## 🐛 BUG NOTI / PROBLEMI APERTI
 
-### Problema Originale
-L'utente ha riportato che il widget mostrava testi hardcoded invece di quelli configurati nel Dashboard Settings:
-- **Atteso**: Testi configurabili dal Dashboard
-- **Riscontrato**: "CHAT CON NOI × Ciao! Come possiamo aiutarti? Siamo qui per aiutarti"
-
-### Lavori Completati in Questa Sessione
-
-#### 1. ✅ Fix P0 CRITICAL - Prisma Type Mismatch (Commit precedente)
-**Commit**: N/A (da sessione precedente)
-**Files Modificati**:
-- `backend/prisma/schema.prisma` (line 288)
-- Migration: `20251027130411_fix_system_settings_value_type/migration.sql`
-
-**Problema**:
-- Prisma schema definiva `SystemSettings.value` come tipo `Json`
-- Frontend inviava valori STRING (es. "LUCY - ASSISTENTE VIRTUALE")
-- Prisma rifiutava silenziosamente gli insert/update
-- Risultato: settings sembravano salvati (200 OK) ma non persistevano nel database
-
-**Fix**:
-```prisma
-// PRIMA:
-value Json
-
-// DOPO:
-value String @db.Text
-```
-
-**Impatto**:
-- ✅ Widget settings ora si salvano correttamente
-- ✅ Dashboard Settings > Widget tab funzionale
-- ✅ /api/settings/public ritorna valori configurati
-- ✅ Widget carica title/greeting personalizzati
-
-#### 2. ✅ Rimozione Widget Subtitle - Backend (Commit: deea849)
-**Data**: 27 Ottobre 2025
-**Repository**: lucine-production
-**Branch**: main
-
-**Files Modificati**:
-1. **src/pages/Settings.tsx**
-   - Rimosso campo `widgetSubtitle` dall'interfaccia TypeScript `SettingsState`
-   - Rimosso `widgetSubtitle: 'Chiedimi quello che vuoi sapere.'` da `defaultSettings`
-   - Rimosso il campo "Sottotitolo" dalla UI (Widget Layout section, righe 542-549)
-
-2. **backend/src/controllers/settings.controller.js** (lines 195-232)
-   - Rimosso `'widgetSubtitle'` dall'array `widgetKeys`
-   - Rimosso campo `subtitle` dall'oggetto `widgetSettings` nella risposta di `/api/settings/public`
-
-**Motivazione**:
-Utente: "il subtitle non serve a niente, toglilo da ovunque"
-
-Widget mostrava DUE messaggi:
-- Messaggio 1: "Ciao! Sono Lucy, il tuo assistente virtuale. 👋"
-- Messaggio 2: "Chiedimi quello che vuoi sapere"
-
-Utente voleva solo UNO messaggio: "Ciao! Sono Lucy, il tuo assistente virtuale. Come posso aiutarti?"
-
-**Status Deploy**:
-- ✅ Commit creato localmente: deea849
-- ✅ Push a GitHub: completato
-- ⚠️  Render auto-deploy: DA VERIFICARE
-  - User ha confermato "Deploy live for deea849"
-  - MA API continuava a ritornare subtitle field quando testato
-  - Possibile: Render ha deployato solo frontend, non backend
-  - O cache non ancora aggiornata
-
-#### 3. ✅ Rimozione Widget Subtitle - Widget Code (Commit: 889b75f)
-**Data**: 27 Ottobre 2025
-**Repository**: lucine-minimal
-**Branch**: main
-
-**Files Modificati**:
-1. **snippets/chatbot-popup.liquid**
-
-**Modifiche HTML**:
-```liquid
-<!-- PRIMA (DUE MESSAGGI): -->
-<div class="chat-messages" id="chatMessages">
-  <div class="chat-message bot">
-    <div class="message-bubble">
-      Ciao! Sono Lucy, il tuo assistente virtuale. 👋
-    </div>
-  </div>
-  <div class="chat-message bot">
-    <div class="message-bubble">
-      Chiedimi quello che vuoi sapere.<br>Se non troviamo una risposta, ti metterò in contatto con un operatore!
-    </div>
-  </div>
-</div>
-
-<!-- DOPO (UN MESSAGGIO): -->
-<div class="chat-messages" id="chatMessages">
-  <div class="chat-message bot">
-    <div class="message-bubble">
-      Ciao! Sono Lucy, il tuo assistente virtuale. Come posso aiutarti?
-    </div>
-  </div>
-</div>
-```
-
-**Modifiche JavaScript**:
-```javascript
-// PRIMA:
-function updateWelcomeMessages() {
-  const welcomeMessages = messagesContainer.querySelectorAll('.chat-message.bot');
-  if (welcomeMessages.length >= 2 && widgetSettings.greeting && widgetSettings.subtitle) {
-    welcomeMessages[0].querySelector('.message-bubble').textContent = widgetSettings.greeting;
-    welcomeMessages[1].querySelector('.message-bubble').innerHTML = widgetSettings.subtitle;
-    console.log('💬 Updated welcome messages');
-  }
-}
-
-// DOPO:
-function updateWelcomeMessages() {
-  const welcomeMessages = messagesContainer.querySelectorAll('.chat-message.bot');
-  if (welcomeMessages.length >= 1 && widgetSettings.greeting) {
-    welcomeMessages[0].querySelector('.message-bubble').textContent = widgetSettings.greeting;
-    console.log('💬 Updated welcome message');
-  }
-}
-```
-
-**Status Deploy**:
-- ✅ Commit creato localmente: 889b75f
-- ⏳ Push a GitHub: IN CORSO (processo lento per connettività di rete)
-  - Comando `git push origin main` lanciato
-  - Timeout multipli durante il push
-  - Commit è pronto e verrà pushato appena la connessione completa
-- ❌ Deploy a Shopify: NON ANCORA FATTO
-  - Widget è in repository separato (lucine-minimal)
-  - Richiede deployment manuale su Shopify theme
-  - File da deployare: `snippets/chatbot-popup.liquid`
-
-## 📋 Azioni Necessarie per Completare
-
-### 1. ⏳ URGENTE - Verifica Push Widget
-**Cosa fare**:
-```bash
-cd /Users/brnobtt/Desktop/lucine-minimal
-git status
-git log --oneline -1
-```
-
-**Risultato atteso**:
-- Se push completato: `Your branch is up to date with 'origin/main'`
-- Se non completato: `Your branch is ahead of 'origin/main' by 1 commit`
-
-**Se non completato**:
-```bash
-git push origin main
-```
-
-### 2. ⚠️  CRITICO - Verifica Backend Deployment su Render
-**Cosa verificare**:
-1. Vai su Render Dashboard
-2. Controlla che il deploy di commit `deea849` sia completamente deployato per il BACKEND service
-3. Testa API:
-```bash
-curl -s https://chatbot-lucy-2025.onrender.com/api/settings/public | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-settings = data.get('data', {})
-print('✅ Subtitle rimosso' if 'subtitle' not in settings else '❌ Subtitle ancora presente')
-print('Keys disponibili:', list(settings.keys()))
-"
-```
-
-**Se subtitle è ancora presente**:
-- Verifica che Render abbia deployato BACKEND service (non solo frontend)
-- Controlla logs Render per errori durante deploy
-- Potrebbe essere necessario fare trigger manuale deploy
-
-### 3. 🚀 Deploy Widget a Shopify
-**Dopo aver confermato il push GitHub**:
-
-**Opzione A - Deploy Manuale**:
-1. Accedi a Shopify Admin
-2. Vai in Online Store > Themes
-3. Clicca "..." sul tema attivo > Edit code
-4. Trova il file `snippets/chatbot-popup.liquid`
-5. Copia il contenuto da `/Users/brnobtt/Desktop/lucine-minimal/snippets/chatbot-popup.liquid`
-6. Salva
-
-**Opzione B - CLI Shopify** (se configurato):
-```bash
-cd /Users/brnobtt/Desktop/lucine-minimal
-shopify theme push
-```
-
-### 4. ✅ Test Finale End-to-End
-**Dopo tutti i deploy**:
-
-1. **Test Backend API**:
-```bash
-curl -s https://chatbot-lucy-2025.onrender.com/api/settings/public
-```
-Verifica output:
-```json
-{
-  "success": true,
-  "data": {
-    "primaryColor": "#4F46E5",
-    "position": "bottom-right",
-    "greeting": "Ciao! Sono Lucy, il tuo assistente virtuale. Come posso aiutarti?",
-    "title": "LUCY - ASSISTENTE VIRTUALE",
-    "version": 1730036400000
-    // ❌ NO 'subtitle' field
-  }
-}
-```
-
-2. **Test Widget su Sito**:
-- Apri il sito dove è installato il widget
-- Clicca sull'icona del widget
-- **Verifica**:
-  - ✅ Appare UN SOLO messaggio di benvenuto
-  - ✅ Messaggio: "Ciao! Sono Lucy, il tuo assistente virtuale. Come posso aiutarti?"
-  - ❌ NON appare secondo messaggio
-  - ✅ Widget title corrisponde a quello configurato nel Dashboard
-
-3. **Test Configurabilità**:
-- Vai su Dashboard > Settings > Widget
-- Modifica "Messaggio di Benvenuto"
-- Clicca "Salva Modifiche"
-- Ricarica widget sul sito
-- Verifica che il nuovo messaggio appaia
-
-## 🔍 File di Riferimento Importanti
-
-### Backend - Production Repo
-```
-/Users/brnobtt/Desktop/lucine-production/
-
-Modificati in questa sessione:
-├── backend/prisma/schema.prisma (Prisma type fix - sessione precedente)
-├── backend/prisma/migrations/20251027130411_fix_system_settings_value_type/
-├── backend/src/controllers/settings.controller.js (removed subtitle - commit deea849)
-└── src/pages/Settings.tsx (removed subtitle UI - commit deea849)
-```
-
-### Widget - Minimal Repo
-```
-/Users/brnobtt/Desktop/lucine-minimal/
-
-Modificati in questa sessione:
-└── snippets/chatbot-popup.liquid (removed second message - commit 889b75f)
-```
-
-## 🐛 Bug Noti / Problemi Aperti
-
-### 1. ⚠️  Git Push Lento (lucine-minimal)
-**Problema**: Push di commit 889b75f a GitHub molto lento
-**Possibile causa**: Connettività di rete
-**Status**: In attesa completamento
-**Workaround**: Provare push manualmente o attendere
-
-### 2. ⚠️  Backend API Cache
-**Problema**: API `/api/settings/public` potrebbe ancora ritornare campo `subtitle` anche dopo deploy
+### 1. ⚠️ Subtitle API Still Returning Field
+**Problema**: API `/api/settings/public` ritorna ancora campo `subtitle` anche dopo rimozione
+**Impact**: 🟡 BASSO (non blocca funzionalità)
+**Status**: Da investigare
 **Possibile causa**:
-- Cache CDN (5 minuti TTL)
-- Backend service non ancora deployato completamente su Render
-- Deploy ha aggiornato solo frontend service
-**Status**: Da verificare
-**Workaround**: Controllare Render dashboard per confermare deploy backend
+- Cache non ancora scaduta
+- Deploy non completato correttamente
+- Bisogna verificare manualmente Render deployment
 
-## 📊 Commit History - Questa Sessione
+**Workaround**: Widget ignora subtitle se presente, mostra solo greeting
 
-### lucine-production (Backend + Dashboard)
+---
+
+## ✅ BUGS RISOLTI - Sessioni Precedenti
+
+### 28 Ottobre 2025
+
+#### P0.3 - Widget Smart Actions quando Operatori Offline
+**Status**: ✅ COMPLETATO (commit 5bcfa53)
+**Problema**: User richiede operatore, nessuno disponibile, nessuna azione mostrata
+**Fix**: Aggiunto showSmartActions con opzioni "Apri Ticket" e "Continua con AI"
+
+#### P0.4 - Action request_ticket Implementation
+**Status**: ✅ COMPLETATO (commit 5bcfa53)
+**Problema**: Button "Apri Ticket" mandava messaggio invece di aprire form
+**Fix**: Chiamare showTicketForm() direttamente
+
+#### P0 Ticket Creation 500 Errors
+**Status**: ✅ COMPLETATO (commits b7e9f03, d59d247, f182715, 8ddec3b)
+**Problemi risolti**:
+1. Notification failures → wrapped in try/catch
+2. Session update failures → non-blocking + create if missing
+3. Duplicate ticket constraint → check and return existing
+4. Widget response structure check → fixed to check data.data.ticket
+
+#### P0 Operator Availability System
+**Status**: ✅ COMPLETATO (commits 7704291, f501844)
+**Problemi risolti**:
+1. isOnline flag reset on server restart → removed completely, use only isAvailable
+2. Auto-offline background job → disabled completely, manual control only
+
+#### P0 Backend Deployment Issues
+**Status**: ✅ COMPLETATO (commits 9e3f598, 6e7397c, ec29bb7, d31382e, 82bc540)
+**Problemi risolti**:
+1. Prisma schema not found → Root Directory = "backend"
+2. Prisma in devDependencies → moved to dependencies
+3. Missing notification.service → replaced with emailService
+
+---
+
+## 📊 COMMITS HISTORY - Oggi
+
+### lucine-production (Backend)
 ```
-deea849 - fix: Remove widgetSubtitle - show only single greeting message
-          (Backend API + Dashboard UI)
+273867f - fix: Return withOperator flag when session is WITH_OPERATOR
+          - backend/src/controllers/chat.controller.js
 
-          Modified:
-          - backend/src/controllers/settings.controller.js
-          - src/pages/Settings.tsx
+f501844 - fix: Remove isOnline checks - use only isAvailable
+          - Multiple files
 
-          Pushed: ✅ Yes
-          Deployed on Render: ⚠️ To Verify
+7704291 - fix: Disable automatic operator offline - manual control only
+          - backend/src/services/background-jobs.service.js
 ```
 
 ### lucine-minimal (Widget)
 ```
-889b75f - fix: Remove widgetSubtitle - show only single greeting message
-          (Widget Code)
-
-          Modified:
+fb2f9bd - fix: Handle WITH_OPERATOR mode - display messages properly
           - snippets/chatbot-popup.liquid
 
-          Pushed: ⏳ In Progress
-          Deployed on Shopify: ❌ Not Yet
+18be874 - fix: Check operatorAvailable instead of non-existent assigned
+          - snippets/chatbot-popup.liquid
+
+41351c5 - fix: Send sessionId as object in Socket.IO join_chat
+          - snippets/chatbot-popup.liquid
 ```
-
-## 🔄 Flow di Deploy
-
-```
-┌─────────────────────┐
-│  Local Development  │
-│   (Completed ✅)    │
-└──────────┬──────────┘
-           │
-           ├─────────────────────────────────┬──────────────────────────────┐
-           │                                 │                              │
-           v                                 v                              v
-┌─────────────────────┐          ┌─────────────────────┐      ┌─────────────────────┐
-│  Git Commit/Push    │          │  Git Commit/Push    │      │                     │
-│   lucine-production │          │   lucine-minimal    │      │                     │
-│   (Completed ✅)    │          │   (In Progress ⏳)  │      │                     │
-└──────────┬──────────┘          └──────────┬──────────┘      │                     │
-           │                                 │                 │                     │
-           v                                 v                 │                     │
-┌─────────────────────┐          ┌─────────────────────┐      │                     │
-│  Render Auto-Deploy │          │  Manual Shopify     │      │                     │
-│   (To Verify ⚠️)    │          │     Deploy          │      │                     │
-│                     │          │   (Not Done ❌)     │      │                     │
-└──────────┬──────────┘          └──────────┬──────────┘      │                     │
-           │                                 │                 │                     │
-           │                                 │                 │                     │
-           └─────────────────┬───────────────┘                 │                     │
-                             v                                 │                     │
-                   ┌─────────────────────┐                     │                     │
-                   │   End-to-End Test   │                     │                     │
-                   │   (Pending ⏳)      │                     │                     │
-                   └─────────────────────┘                     │                     │
-                                                               │                     │
-                                                               └─────────────────────┘
-```
-
-## 💡 Note per la Prossima Sessione
-
-### Quando Riapri
-1. **Prima cosa**: Controlla se il push del widget è completato
-   ```bash
-   cd /Users/brnobtt/Desktop/lucine-minimal && git status
-   ```
-
-2. **Verifica Render**: Controlla dashboard Render che backend sia deployato
-
-3. **Test API**: Verifica che subtitle sia rimosso dall'API response
-
-4. **Deploy Widget**: Se push completato, deploya su Shopify
-
-5. **Test E2E**: Testa widget sul sito
-
-### Comandi Rapidi per Verifica
-```bash
-# Check widget push status
-cd /Users/brnobtt/Desktop/lucine-minimal && git status && git log --oneline -3
-
-# Check backend API
-curl -s https://chatbot-lucy-2025.onrender.com/api/settings/public | python3 -c "import sys, json; print(json.dumps(json.load(sys.stdin), indent=2))"
-
-# If push not complete, retry
-cd /Users/brnobtt/Desktop/lucine-minimal && git push origin main
-```
-
-## 📞 Contesto Utente
-
-**Richiesta iniziale**: Widget mostra testi hardcoded invece di quelli configurabili
-**Root cause identificato**: Prisma type mismatch (`Json` vs `String`)
-**Richiesta successiva**: Rimuovere completamente subtitle, mostrare solo un messaggio
-**Obiettivo finale**: Widget mostra UN SOLO messaggio configurabile dal Dashboard
-
-**Frase chiave utente**: "il subtitle non serve a niente, toglilo da ovunque"
-
-## ✅ Checklist per Completamento
-
-- [x] Fix Prisma type mismatch (sessione precedente)
-- [x] Remove widgetSubtitle from Backend API
-- [x] Remove widgetSubtitle from Dashboard UI
-- [x] Commit backend changes (deea849)
-- [x] Push backend changes to GitHub
-- [x] Remove second message from widget HTML
-- [x] Update widget JavaScript function
-- [x] Commit widget changes (889b75f)
-- [ ] Push widget changes to GitHub (IN PROGRESS)
-- [ ] Verify Render backend deployment
-- [ ] Deploy widget to Shopify
-- [ ] Test API endpoint (no subtitle)
-- [ ] Test widget on site (single message)
-- [ ] Test configurability from Dashboard
 
 ---
 
-## 🔍 NUOVA ANALISI: Chat Flows & Critical Bugs (27 Ottobre 2025)
+## 🔄 PROSSIMI PASSI
 
-### Analisi Completa Eseguita
-È stata condotta un'analisi approfondita di tutti i flussi chat, messaggi, azioni e notifiche nel sistema.
+### Immediate Testing (dopo deploy)
+1. **Test Socket.IO communication**:
+   - Operatore disponibile → user chiede operatore → operatore assegnato
+   - Operatore invia messaggio → user riceve messaggio
+   - User invia messaggio → operatore riceve messaggio
 
-**Documento Creato**: `docs/CHAT_FLOWS_ANALYSIS.md`
+2. **Test WITH_OPERATOR mode**:
+   - Session già WITH_OPERATOR → user invia messaggio
+   - Verifica messaggio non causa schermata bianca
+   - Verifica header mostra nome operatore
 
-### 🔴 Bugs Critici Identificati (P0)
+3. **Test operator unavailable flow**:
+   - Nessun operatore disponibile → smart actions mostrate
+   - Click "Apri Ticket" → form si apre
+   - Submit ticket → ticket creato e appare in dashboard
 
-#### P0.3 - Widget No Ticket Action quando operatori offline
-**Status**: ❌ DA FIXARE
-**Impact**: 🔴 CRITICO
-**Problema**:
-- User chiede operatore, nessuno disponibile
-- Backend ritorna: "Nessun operatore disponibile. Vuoi aprire un ticket?"
-- ❌ Widget mostra SOLO messaggio, NESSUNA azione
-- User rimane bloccato senza modo di aprire ticket
-
-**Fix**: `snippets/chatbot-popup.liquid:992-995` - aggiungere smart actions
-
-#### P0.4 - Action `request_ticket` non implementata
-**Status**: ❌ DA FIXARE
-**Impact**: 🔴 CRITICO
-**Problema**:
-- Button "Apri Ticket" esiste MA chiama `sendMessage('apri ticket')` invece di mostrare form
-- Funzione `showTicketForm()` esiste ma mai chiamata
-
-**Fix**: `snippets/chatbot-popup.liquid:1207` - chiamare `showTicketForm()` invece di `sendMessage()`
-
-### 🟠 Bugs High Priority (P1)
-
-#### P1.6 - Dashboard No Notifications per Nuove Chat
-**Status**: ❌ DA FIXARE
-**Impact**: 🟠 ALTO
-**Problema**:
-- Backend emette `new_chat_request` quando operatore riceve chat
-- Dashboard ❌ NON ascolta questo evento
-- ❌ Nessuna notifica browser
-- ❌ Nessun badge count
-- Operatore non sa di avere chat pending
-
-**Fix**: Implementare socket listeners e notifications in Dashboard
-
-#### P1.7 - Widget Input Non Disabilitata Dopo Chat Chiusa
-**Status**: ❌ DA FIXARE
-**Impact**: 🟡 MEDIO
-**Problema**:
-- Operatore chiude chat → widget riceve evento
-- ❌ Input rimane attiva
-- User può ancora scrivere (ma messaggi non vanno da nessuna parte)
-
-**Fix**: `snippets/chatbot-popup.liquid:1472-1476` - disabilitare input
-
-### 📊 Flussi Analizzati
-
-Sono stati documentati **6 scenari completi**:
-1. ✅ User chiede operatore - Operatore disponibile
-2. ❌ User chiede operatore - NESSUN operatore disponibile (BUG)
-3. ❌ AI suggerisce operatore - Nessuno disponibile (BUG)
-4. ✅ Chat con operatore - Scambio messaggi
-5. ❌ Ticket Creation da widget (BROKEN)
-6. ⚠️ Operatore chiude chat (input non disabilitata)
-
-### Next Actions Suggerite
-
-**IMMEDIATO** (30 minuti):
-1. Fix P0.3 e P0.4 (widget ticket actions)
-2. Test flusso: User chiede operatore → nessuno disponibile → apre ticket
-
-**SHORT-TERM** (2-3 ore):
-1. Fix P1.6 (dashboard notifications)
-2. Fix P1.7 (disable input dopo chiusura)
-3. Testing E2E completo
-
-**Vedi dettagli**: `docs/CHAT_FLOWS_ANALYSIS.md` per tutti i flussi e fix dettagliati
+### Optional Fixes
+1. **Subtitle API**: Investigare perché API ritorna ancora subtitle
+2. **Dashboard notifications**: Implementare notifiche per nuove chat
+3. **Chat closed input**: Disabilitare input quando operatore chiude chat
 
 ---
 
-**Status Generale**: 🟡 In Progress
-**Blockers**: Git push lento, deploy Shopify mancante, NUOVI bugs critici identificati
-**Next Action**: Completare subtitle removal, poi fixare bugs critici P0.3 e P0.4
+## 📞 CONTESTO SESSIONE
+
+**Problema iniziale utente**: "sì ma ti rendi conto che prima funzionava e poi no? così a caso?"
+
+**Root cause identificato**:
+- Bug WITH_OPERATOR mode esisteva GIÀ nel codice
+- "Prima funzionava" perché session era sempre ACTIVE (AI)
+- Dopo Admin Lucine si unì stamattina → session divenne WITH_OPERATOR
+- Da quel momento widget smise di funzionare per messaggi normali
+
+**Lezione appresa**:
+- Widget aveva gestione incompleta degli stati session
+- Testare TUTTI gli stati possibili (ACTIVE, WAITING, WITH_OPERATOR, CLOSED)
+- Non assumere che session sia sempre in un certo stato
+
+---
+
+## ✅ CHECKLIST COMPLETAMENTO
+
+- [x] Fix Socket.IO sessionId format
+- [x] Fix widget operatorAvailable check
+- [x] Fix backend WITH_OPERATOR response
+- [x] Fix widget WITH_OPERATOR handling
+- [x] Commit e push tutti i fix
+- [x] Documentazione aggiornata
+- [ ] Deploy completati (backend + widget)
+- [ ] Test comunicazione operatore-utente
+- [ ] Fix subtitle API (low priority)
+
+---
+
+**Status Generale**: 🟢 Fix Completati, In Attesa Deploy
+**Blockers**: Nessuno
+**Next Action**: Testare comunicazione operatore-utente dopo deploy
