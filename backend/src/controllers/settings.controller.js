@@ -211,8 +211,14 @@ export const getPublicSettings = async (req, res) => {
     });
 
     // Convert array to object for easier access
+    // Strip quotes from values (legacy from when values were stored as JSON)
     const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value;
+      let value = setting.value;
+      // Remove surrounding quotes if present
+      if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+        value = value.slice(1, -1);
+      }
+      acc[setting.key] = value;
       return acc;
     }, {});
 
