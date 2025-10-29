@@ -10,6 +10,7 @@ const ChatWindow = ({ chat, onClose }) => {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [socket, setSocket] = useState(null);
+  const [userIsTyping, setUserIsTyping] = useState(false); // P0.5: Typing indicator
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [convertFormData, setConvertFormData] = useState({
     contactMethod: 'WHATSAPP',
@@ -24,6 +25,36 @@ const ChatWindow = ({ chat, onClose }) => {
     reason: '',
   });
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null); // P0.5: For debouncing typing indicator
+
+  // P0.5: Handle operator typing with debounce
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+
+    if (!socket) return;
+
+    // Emit typing started
+    socket.emit('operator_typing', {
+      sessionId: chat.id,
+      operatorName: localStorage.getItem('operator_name') || 'Operatore',
+      isTyping: true,
+    });
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Stop typing after 1 second of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('operator_typing', {
+        sessionId: chat.id,
+        operatorName: localStorage.getItem('operator_name') || 'Operatore',
+        isTyping: false,
+      });
+    }, 1000);
+  };
 
   useEffect(() => {
     if (!chat) return;
@@ -69,6 +100,17 @@ const ChatWindow = ({ chat, onClose }) => {
       console.log('📨 Received operator_message:', data);
       if (data.sessionId === chat.id && data.message) {
         setMessages((prev) => [...prev, data.message]);
+      }
+    });
+
+    // P0.5: Listen for user typing indicator
+    newSocket.on('user_typing', (data) => {
+      if (data.sessionId === chat.id) {
+        setUserIsTyping(data.isTyping);
+        // Auto-hide after 3 seconds
+        if (data.isTyping) {
+          setTimeout(() => setUserIsTyping(false), 3000);
+        }
       }
     });
 
@@ -295,6 +337,25 @@ const ChatWindow = ({ chat, onClose }) => {
             </div>
           )}
 
+          {/* P0.5: User typing indicator */}
+          {userIsTyping && (
+            <div className="flex items-start gap-3 max-w-4xl mx-auto animate-fade-in">
+              <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-sm flex-shrink-0">
+                👤
+              </div>
+              <div className="bg-gray-100 px-4 py-2 rounded-lg">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-gray-600">Utente sta scrivendo</span>
+                  <span className="flex gap-1">
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></span>
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -332,7 +393,7 @@ const ChatWindow = ({ chat, onClose }) => {
           <input
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Scrivi un messaggio..."
             disabled={loading}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"

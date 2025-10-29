@@ -46,6 +46,29 @@ export function setupWebSocketHandlers(io) {
       console.log(`💬 Left chat session: ${sessionId}`);
     });
 
+    // P0.5: User typing indicator
+    socket.on('user_typing', (data) => {
+      const { sessionId, isTyping } = data;
+      // Notify operator in the chat room
+      socket.to(`chat_${sessionId}`).emit('user_typing', {
+        sessionId,
+        isTyping,
+      });
+      console.log(`⌨️  User typing in session ${sessionId}: ${isTyping}`);
+    });
+
+    // P0.5: Operator typing indicator
+    socket.on('operator_typing', (data) => {
+      const { sessionId, operatorName, isTyping } = data;
+      // Notify user in the chat room
+      socket.to(`chat_${sessionId}`).emit('operator_typing', {
+        sessionId,
+        operatorName,
+        isTyping,
+      });
+      console.log(`⌨️  Operator typing in session ${sessionId}: ${isTyping}`);
+    });
+
     // Handle disconnection
     socket.on('disconnect', () => {
       console.log(`🔌 Client disconnected: ${socket.id}`);
