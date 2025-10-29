@@ -330,6 +330,50 @@ const ChatWindow = ({ chat, onClose }) => {
   const [showUserHistory, setShowUserHistory] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // P0.1: File Upload state
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File troppo grande. Dimensione massima: 10MB');
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(
+        `/api/chat/sessions/${chat.id}/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      // Message will be added via WebSocket
+      console.log('✅ P0.1: File uploaded successfully');
+
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert(error.response?.data?.error?.message || 'Errore caricamento file');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleLoadUserHistory = async () => {
     if (!chat.userId) {
       alert('Nessun utente registrato associato a questa chat');
@@ -507,6 +551,70 @@ const ChatWindow = ({ chat, onClose }) => {
                   message.type
                 )}`}
               >
+                {/* P0.1: File Attachment Display */}
+                {message.attachment && (
+                  <div className="mb-2">
+                    {message.attachment.resourceType === 'image' ? (
+                      <a
+                        href={message.attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={message.attachment.url}
+                          alt={message.attachment.originalName}
+                          className="max-w-full h-auto rounded-lg max-h-64 object-contain"
+                        />
+                      </a>
+                    ) : (
+                      <a
+                        href={message.attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 p-3 rounded-lg transition-colors ${
+                          message.type === 'operator'
+                            ? 'bg-blue-600 hover:bg-blue-700'
+                            : 'bg-gray-200 hover:bg-gray-300'
+                        }`}
+                      >
+                        <span className="text-2xl">
+                          {message.attachment.mimetype?.includes('pdf')
+                            ? '📄'
+                            : message.attachment.mimetype?.includes('word')
+                            ? '📝'
+                            : message.attachment.mimetype?.includes('excel') ||
+                              message.attachment.mimetype?.includes('spreadsheet')
+                            ? '📊'
+                            : message.attachment.mimetype?.includes('zip') ||
+                              message.attachment.mimetype?.includes('rar')
+                            ? '📦'
+                            : '📎'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`text-sm font-medium truncate ${
+                              message.type === 'operator' ? 'text-white' : 'text-gray-900'
+                            }`}
+                          >
+                            {message.attachment.originalName}
+                          </p>
+                          <p
+                            className={`text-xs ${
+                              message.type === 'operator' ? 'text-white/70' : 'text-gray-500'
+                            }`}
+                          >
+                            {(message.attachment.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                        <span className={message.type === 'operator' ? 'text-white' : 'text-gray-600'}>
+                          ⬇
+                        </span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {message.content}
                 </p>
@@ -598,6 +706,26 @@ const ChatWindow = ({ chat, onClose }) => {
           onSubmit={handleSendMessage}
           className="flex gap-2 max-w-4xl mx-auto"
         >
+          {/* P0.1: Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileSelect}
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar"
+          />
+
+          {/* P0.1: Upload Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingFile || loading}
+            className="px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Carica file"
+          >
+            {uploadingFile ? '⏳' : '📎'}
+          </button>
+
           <input
             type="text"
             value={inputValue}
