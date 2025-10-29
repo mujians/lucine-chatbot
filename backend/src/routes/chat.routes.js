@@ -20,9 +20,11 @@ import {
   updateInternalNote,
   deleteInternalNote,
   getUserHistory,
+  uploadFile,
 } from '../controllers/chat.controller.js';
 import { convertChatToTicket } from '../controllers/ticket.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
+import { uploadService } from '../services/upload.service.js';
 
 const router = express.Router();
 
@@ -56,5 +58,14 @@ router.delete('/sessions/:sessionId/notes/:noteId', authenticateToken, deleteInt
 
 // P0.2: User History route
 router.get('/users/:userId/history', authenticateToken, getUserHistory);
+
+// P0.1: File Upload route (both users and operators can upload)
+const upload = uploadService.getUploadMiddleware();
+router.post(
+  '/sessions/:sessionId/upload',
+  optionalAuth,
+  upload.single('file'),
+  uploadFile
+);
 
 export default router;

@@ -2,6 +2,7 @@ import { prisma } from '../server.js';
 import { io } from '../server.js';
 import { generateAIResponse } from '../services/openai.service.js';
 import { emailService } from '../services/email.service.js';
+import { uploadService } from '../services/upload.service.js';
 
 /**
  * Create new chat session
@@ -1219,6 +1220,97 @@ export const getUserHistory = async (req, res) => {
     console.error('Get user history error:', error);
     res.status(500).json({
       error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * P0.1: Upload file attachment
+ * POST /api/chat/sessions/:sessionId/upload
+ */
+export const uploadFile = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        error: { message: 'No file uploaded' },
+      });
+    }
+
+    // Check session exists
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Upload to Cloudinary
+    const uploadResult = await uploadService.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype
+    );
+
+    // Create message with file attachment
+    const messages = JSON.parse(session.messages || '[]');
+    const isOperator = !!req.operator; // Check if authenticated (operator) or public (user)
+
+    const newMessage = {
+      id: Date.now().toString(),
+      type: isOperator ? 'operator' : 'user',
+      content: `📎 ${file.originalname}`,
+      attachment: {
+        url: uploadResult.url,
+        publicId: uploadResult.publicId,
+        originalName: uploadResult.originalName,
+        mimetype: uploadResult.mimetype,
+        size: uploadResult.bytes,
+        resourceType: uploadResult.resourceType,
+        ...(uploadResult.width && { width: uploadResult.width }),
+        ...(uploadResult.height && { height: uploadResult.height }),
+      },
+      timestamp: new Date().toISOString(),
+      ...(isOperator && { operatorName: req.operator.name, operatorId: req.operator.id }),
+    };
+
+    messages.push(newMessage);
+
+    // Update session
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        messages: JSON.stringify(messages),
+        lastMessageAt: new Date(),
+      },
+    });
+
+    // Emit via WebSocket
+    const eventName = isOperator ? 'operator_message' : 'user_message';
+    io.to(`chat_${sessionId}`).emit(eventName, {
+      sessionId: sessionId,
+      message: newMessage,
+    });
+
+    console.log(`✅ P0.1: File uploaded for session ${sessionId}: ${file.originalname}`);
+
+    res.json({
+      success: true,
+      data: {
+        message: newMessage,
+        uploadResult: uploadResult,
+      },
+      message: 'File uploaded successfully',
+    });
+  } catch (error) {
+    console.error('Upload file error:', error);
+    res.status(500).json({
+      error: { message: error.message || 'Internal server error' },
     });
   }
 };
