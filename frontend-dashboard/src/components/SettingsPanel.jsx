@@ -6,6 +6,9 @@ const SettingsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingKey, setEditingKey] = useState(null);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testingWhatsApp, setTestingWhatsApp] = useState(false);
+  const [testResults, setTestResults] = useState({});
 
   useEffect(() => {
     fetchSettings();
@@ -40,9 +43,57 @@ const SettingsPanel = () => {
   const handleChange = (key, newValue) => {
     setSettings(
       settings.map((s) =>
-        s.key === key ? { ...s, value: newValue } : s
+        s.key === key ? { ...s, value: newValue} : s
       )
     );
+  };
+
+  // P2.3: Test Email Connection
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    setTestResults({ ...testResults, email: null });
+
+    try {
+      const response = await axios.post('/api/settings/test-email');
+      setTestResults({
+        ...testResults,
+        email: { success: true, message: response.data.message },
+      });
+    } catch (error) {
+      setTestResults({
+        ...testResults,
+        email: {
+          success: false,
+          message: error.response?.data?.error?.message || 'Connection failed',
+        },
+      });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  // P2.3: Test WhatsApp Connection
+  const handleTestWhatsApp = async () => {
+    setTestingWhatsApp(true);
+    setTestResults({ ...testResults, whatsapp: null });
+
+    try {
+      const response = await axios.post('/api/settings/test-whatsapp');
+      setTestResults({
+        ...testResults,
+        whatsapp: { success: true, message: response.data.message },
+      });
+    } catch (error) {
+      setTestResults({
+        ...testResults,
+        whatsapp: {
+          success: false,
+          message: error.response?.data?.error?.message || 'Connection failed',
+        },
+      });
+    } finally {
+      setTestingWhatsApp(false);
+    }
   };
 
   const getCategorySettings = (category) => {
@@ -206,6 +257,74 @@ const SettingsPanel = () => {
           })}
         </div>
       )}
+
+      {/* P2.3: Test Connections */}
+      <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span className="text-2xl">🔌</span>
+            Test Connessioni
+          </h2>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Test Email */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="font-medium text-gray-900 mb-1">SMTP / Email</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Testa la connessione al server SMTP per l'invio di email
+              </p>
+              {testResults.email && (
+                <div
+                  className={`text-sm p-3 rounded-lg mb-3 ${
+                    testResults.email.success
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}
+                >
+                  {testResults.email.success ? '✅' : '❌'} {testResults.email.message}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleTestEmail}
+              disabled={testingEmail}
+              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {testingEmail ? 'Testing...' : 'Test Email'}
+            </button>
+          </div>
+
+          {/* Test WhatsApp */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="font-medium text-gray-900 mb-1">Twilio / WhatsApp</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Testa la connessione a Twilio per l'invio di messaggi WhatsApp
+              </p>
+              {testResults.whatsapp && (
+                <div
+                  className={`text-sm p-3 rounded-lg mb-3 ${
+                    testResults.whatsapp.success
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}
+                >
+                  {testResults.whatsapp.success ? '✅' : '❌'} {testResults.whatsapp.message}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleTestWhatsApp}
+              disabled={testingWhatsApp}
+              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {testingWhatsApp ? 'Testing...' : 'Test WhatsApp'}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Info Box */}
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
