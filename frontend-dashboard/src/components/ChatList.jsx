@@ -141,9 +141,20 @@ const ChatList = ({ onSelectChat }) => {
     <div className="flex flex-col h-full bg-white border-r border-gray-200">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Chat Attive
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Chat Attive
+          </h2>
+          {/* P13: Total Unread Badge */}
+          {(() => {
+            const totalUnread = chats.reduce((sum, chat) => sum + (chat.unreadMessageCount || 0), 0);
+            return totalUnread > 0 ? (
+              <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 bg-red-500 text-white text-sm font-bold rounded-full">
+                {totalUnread}
+              </span>
+            ) : null;
+          })()}
+        </div>
 
         {/* Search */}
         <div className="relative mb-3">
@@ -245,6 +256,13 @@ const ChatList = ({ onSelectChat }) => {
                     {getStatusIcon(chat.status)}
                     {chat.status}
                   </span>
+
+                  {/* P13: Unread Message Badge */}
+                  {chat.unreadMessageCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                      {chat.unreadMessageCount}
+                    </span>
+                  )}
 
                   {/* AI Confidence */}
                   {chat.aiConfidence !== null && chat.aiConfidence !== undefined && (

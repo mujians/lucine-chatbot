@@ -33,6 +33,17 @@ const ChatWindow = ({ chat, onClose }) => {
       setMessages(chat.messages);
     }
 
+    // P13: Mark messages as read when opening chat
+    const markAsRead = async () => {
+      try {
+        await axios.post(`/api/chat/session/${chat.id}/mark-read`);
+        console.log('✅ Messages marked as read');
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+    markAsRead();
+
     // Initialize WebSocket
     const newSocket = io(WS_URL, {
       auth: { token: localStorage.getItem('auth_token') },

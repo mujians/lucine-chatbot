@@ -114,12 +114,15 @@ export const sendUserMessage = async (req, res) => {
     };
     messages.push(userMessage);
 
-    // Update session
+    // Update session (P13: increment unread count if WITH_OPERATOR)
     await prisma.chatSession.update({
       where: { id: sessionId },
       data: {
         messages: JSON.stringify(messages),
         lastMessageAt: new Date(),
+        ...(session.status === 'WITH_OPERATOR' && session.operatorId
+          ? { unreadMessageCount: { increment: 1 } }
+          : {}),
       },
     });
 
@@ -129,6 +132,7 @@ export const sendUserMessage = async (req, res) => {
         sessionId: sessionId,
         userName: session.userName,
         message: userMessage,
+        unreadCount: session.unreadMessageCount + 1,  // P13: send unread count
       });
 
       return res.json({
@@ -767,6 +771,44 @@ export const transferSession = async (req, res) => {
     });
   } catch (error) {
     console.error('Transfer session error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * Mark messages as read (P13)
+ * POST /api/chat/session/:sessionId/mark-read
+ */
+export const markMessagesAsRead = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Reset unread count
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { unreadMessageCount: 0 },
+    });
+
+    console.log(`✅ Messages marked as read for session ${sessionId}`);
+
+    res.json({
+      success: true,
+      message: 'Messages marked as read',
+    });
+  } catch (error) {
+    console.error('Mark messages as read error:', error);
     res.status(500).json({
       error: { message: 'Internal server error' },
     });

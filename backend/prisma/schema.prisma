@@ -116,6 +116,7 @@ model ChatSession {
   operatorId              String?
   operator                Operator? @relation(fields: [operatorId], references: [id])
   operatorJoinedAt        DateTime?
+  unreadMessageCount      Int      @default(0)  // P13: Unread messages for operator
 
   // Archive & Flag
   isArchived              Boolean  @default(false)

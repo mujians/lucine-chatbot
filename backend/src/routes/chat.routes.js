@@ -13,6 +13,7 @@ import {
   flagSession,
   unflagSession,
   transferSession,
+  markMessagesAsRead,
 } from '../controllers/chat.controller.js';
 import { convertChatToTicket } from '../controllers/ticket.controller.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.middleware.js';
@@ -29,6 +30,7 @@ router.post('/session/:sessionId/request-operator', requestOperator);
 router.get('/sessions', authenticateToken, getSessions);
 router.post('/session/:sessionId/operator-message', authenticateToken, sendOperatorMessage);
 router.post('/session/:sessionId/close', authenticateToken, closeSession);
+router.post('/session/:sessionId/mark-read', authenticateToken, markMessagesAsRead);
 router.delete('/sessions/:sessionId', authenticateToken, deleteSession);
 router.post('/sessions/:sessionId/archive', authenticateToken, archiveSession);
 router.post('/sessions/:sessionId/unarchive', authenticateToken, unarchiveSession);
