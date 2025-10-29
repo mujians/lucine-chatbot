@@ -256,8 +256,84 @@ const SettingsPanel = () => {
 
   // P2.2: Render integrations tab (test connections)
   const renderIntegrationsTab = () => {
+    const integrationSettings = getCategorySettings('integrations');
+
     return (
       <div className="space-y-6">
+        {/* P0.1: Cloudinary Settings */}
+        {integrationSettings.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <span className="text-2xl">☁️</span>
+              Cloudinary (File Storage)
+            </h3>
+            {integrationSettings.map((setting) => (
+              <div key={setting.key} className="p-6 bg-white rounded-lg border border-gray-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium text-gray-900">
+                        {setting.key.replace(/cloudinary/gi, '').replace(/([A-Z])/g, ' $1').trim()}
+                      </h3>
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                        {setting.key}
+                      </span>
+                    </div>
+                    {setting.description && (
+                      <p className="text-sm text-gray-600 mb-3">
+                        {setting.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4">
+                      {editingKey === setting.key ? (
+                        <>
+                          {renderSettingInput(setting)}
+                          <button
+                            onClick={() => handleSave(setting)}
+                            disabled={saving}
+                            className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                          >
+                            {saving ? 'Salvataggio...' : 'Salva'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingKey(null);
+                              fetchSettings();
+                            }}
+                            className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                          >
+                            Annulla
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1 px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
+                            {setting.value || <span className="text-gray-400 italic">Non configurato</span>}
+                          </div>
+                          <button
+                            onClick={() => setEditingKey(setting.key)}
+                            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            Modifica
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {setting.updatedBy && setting.updatedAt && (
+                  <p className="text-xs text-gray-500 mt-3">
+                    Ultima modifica: {new Date(setting.updatedAt).toLocaleString('it-IT')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Test Connections Section */}
+        <h3 className="text-lg font-semibold text-gray-800 mt-8">Test Connessioni</h3>
+
         {/* Test Email */}
         <div className="p-6 bg-white rounded-lg border border-gray-200">
           <div className="flex items-start justify-between gap-4">
