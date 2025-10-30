@@ -149,6 +149,7 @@ export default function Settings() {
   const [testingWhatsApp, setTestingWhatsApp] = useState(false);
   const [emailTestResult, setEmailTestResult] = useState<string | null>(null);
   const [whatsAppTestResult, setWhatsAppTestResult] = useState<string | null>(null);
+  const [testEmailAddress, setTestEmailAddress] = useState<string>(''); // Custom test email address
 
   useEffect(() => {
     fetchSettings();
@@ -231,7 +232,8 @@ export default function Settings() {
     try {
       setTestingEmail(true);
       setEmailTestResult(null);
-      const result = await settingsApi.testEmail();
+      // Send custom test email if specified, otherwise use operator's email
+      const result = await settingsApi.testEmail(testEmailAddress.trim() || undefined);
       setEmailTestResult(`✓ Test email inviata con successo a ${result.data.recipient}`);
     } catch (error: any) {
       setEmailTestResult(`✗ Errore: ${error.response?.data?.error?.message || 'Test fallito'}`);
@@ -440,7 +442,23 @@ export default function Settings() {
             },
           ]}
           actions={
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label htmlFor="testEmail" className="text-sm font-medium">
+                  Email destinatario test (opzionale)
+                </label>
+                <input
+                  id="testEmail"
+                  type="email"
+                  value={testEmailAddress}
+                  onChange={(e) => setTestEmailAddress(e.target.value)}
+                  placeholder="Lascia vuoto per usare email operatore"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se vuoto, l'email verrà inviata all'indirizzo dell'operatore loggato
+                </p>
+              </div>
               <Button
                 onClick={handleTestEmail}
                 disabled={testingEmail}
