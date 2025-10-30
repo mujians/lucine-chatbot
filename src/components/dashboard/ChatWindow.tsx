@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, Archive, Flag, XCircle, Download, StickyNote } from 'lucide-react';
+import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator, InternalNote } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,8 +61,10 @@ export function ChatWindow({
   const [userIsTyping, setUserIsTyping] = useState(false); // Typing indicator
   const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]); // Internal Notes
   const [showNotes, setShowNotes] = useState(false); // Notes sidebar toggle
+  const [uploadingFile, setUploadingFile] = useState(false); // File upload state
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
+  const fileInputRef = useRef<HTMLInputElement>(null); // File input ref
   const { operator: currentOperator } = useAuth();
   const { socket } = useSocket();
 
@@ -273,6 +275,32 @@ export function ChatWindow({
     }
   };
 
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedChat) return;
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File troppo grande. Dimensione massima: 10MB');
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      await chatApi.uploadFile(selectedChat.id, file);
+      console.log('✅ File uploaded successfully');
+      // Message will be added via WebSocket
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error('Failed to upload file:', error);
+      alert(error.response?.data?.error?.message || 'Errore durante il caricamento del file');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   if (!selectedChat) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -436,11 +464,32 @@ export function ChatWindow({
 
       <div className="border-t bg-card p-4">
         <div className="flex gap-2">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx,.txt"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          {/* File upload button */}
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            size="icon"
+            variant="outline"
+            disabled={uploadingFile}
+            title="Carica file"
+          >
+            <Paperclip className={cn("h-4 w-4", uploadingFile && "animate-pulse")} />
+          </Button>
+
           <Input
             placeholder="Scrivi un messaggio o usa /shortcut per risposte rapide..."
             value={message}
             onChange={(e) => handleMessageChange(e.target.value)}
             onKeyPress={handleKeyPress}
+            disabled={uploadingFile}
           />
           <QuickReplyPicker
             onSelect={handleQuickReplySelect}
@@ -448,10 +497,13 @@ export function ChatWindow({
             onOpenChange={setShowQuickReply}
             searchQuery={quickReplySearch}
           />
-          <Button onClick={handleSend} size="icon">
+          <Button onClick={handleSend} size="icon" disabled={uploadingFile}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        {uploadingFile && (
+          <p className="text-xs text-muted-foreground mt-2">Caricamento file in corso...</p>
+        )}
       </div>
 
       {/* Transfer Dialog */}
