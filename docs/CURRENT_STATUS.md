@@ -1,8 +1,215 @@
-# Stato Attuale del Progetto - 29 Ottobre 2025
+# Stato Attuale del Progetto - 30 Ottobre 2025
 
-**Ultimo aggiornamento**: 29 Ottobre 2025, ore 19:45
+**Ultimo aggiornamento**: 30 Ottobre 2025, ore 20:10
 
-## 🎯 Sessione Corrente: Analisi Sistema Completo e Fix Architetturali - COMPLETATA ✅
+## 🎯 Sessione Corrente: Fix Deploy e API Inconsistencies - COMPLETATA ✅
+
+**Obiettivo**: Risolvere problemi deploy Render e fix API endpoint inconsistencies
+
+**Data**: 30 Ottobre 2025, ore 20:00-20:10
+
+**Tasks completati**:
+- [x] Deploy frontend Render falliva (dipendenza mancante) ✅ RISOLTO
+- [x] API 404 error su /mark-read endpoint ✅ RISOLTO
+- [x] Route inconsistencies backend (/session vs /sessions) ✅ RISOLTO
+- [x] Documentazione aggiornata ✅ COMPLETATO
+
+**Problemi Identificati e Risolti**:
+1. ✅ Deploy Render falliva con errore `Cannot find module '@radix-ui/react-checkbox'`
+2. ✅ Dashboard 404 error chiamando `POST /api/chat/sessions/{id}/mark-read`
+3. ✅ Backend routes inconsistenti (mix di `/session/` e `/sessions/`)
+
+---
+
+## 🔥 FIXES DETTAGLIATI - Sessione 30 Ottobre 2025
+
+### Fix 1: Render Deploy Failure - Missing Dependency
+
+**Commit**: `ed35dd1` (frontend)
+**Repository**: `https://github.com/mujians/lucine-chatbot`
+**Severity**: 🔴 CRITICAL - Deploy falliva completamente
+**Impact**: Frontend dashboard non deployabile su Render
+
+**Root Cause**:
+- `package-lock.json` non sincronizzato con `package.json`
+- Dipendenza `@radix-ui/react-checkbox@^1.1.12` dichiarata ma non installata
+- Build TypeScript falliva con: `error TS2307: Cannot find module '@radix-ui/react-checkbox'`
+
+**Fix Applicato**:
+```bash
+# Pulisci e reinstalla dipendenze
+rm -rf node_modules package-lock.json
+npm install
+
+# Verifica build locale
+npm run build  # ✅ Success in 2.38s
+
+# Commit e push
+git add package-lock.json src/components/dashboard/ChatWindow.tsx
+git commit -m "fix: Update package-lock.json and fix tags parsing"
+git push origin main
+```
+
+**Risultato**:
+- ✅ Deploy Render completato con successo
+- ✅ Dashboard live su https://lucine-dashboard.onrender.com
+- ✅ Ultimo deploy: 30 Ottobre 2025, 20:02:04 UTC
+
+**Files Modificati**:
+- `package-lock.json` (rigenerato con dipendenze corrette)
+- `src/components/dashboard/ChatWindow.tsx` (bugfix JSON.parse tags)
+
+---
+
+### Fix 2: API 404 Error - mark-read Endpoint
+
+**Commit**: `76de206` (backend routes) → `5dbe346` (backend repository)
+**Repository Backend**: `https://github.com/mujians/chatbot-lucy-2025`
+**Repository Frontend**: `https://github.com/mujians/lucine-chatbot`
+**Severity**: 🔴 HIGH - Dashboard non poteva marcare messaggi come letti
+**Impact**: Feature "mark as read" completamente non funzionante
+
+**Root Cause**:
+- **Frontend** chiamava: `POST /api/chat/sessions/{id}/mark-read` (plurale)
+- **Backend** aveva: `POST /api/chat/session/:sessionId/mark-read` (singolare)
+- Risultato: 404 Not Found error su ogni chiamata
+
+**Inconsistenze Trovate**:
+Il backend aveva route inconsistenti:
+```javascript
+// ❌ SBAGLIATO (singolare) - protected routes
+router.post('/session/:sessionId/operator-message', ...)
+router.post('/session/:sessionId/close', ...)
+router.post('/session/:sessionId/mark-read', ...)         // ← Causava 404!
+router.post('/session/:sessionId/convert-to-ticket', ...)
+
+// ✅ CORRETTO (plurale) - protected routes
+router.post('/sessions/:sessionId/archive', ...)
+router.post('/sessions/:sessionId/transfer', ...)
+router.put('/sessions/:sessionId/priority', ...)
+```
+
+**Fix Applicato**:
+Standardizzate TUTTE le protected routes a usare `/sessions/` (plurale):
+```javascript
+// backend/src/routes/chat.routes.js
+
+// ✅ DOPO - Tutte consistenti
+router.post('/sessions/:sessionId/operator-message', ...)  // Changed
+router.post('/sessions/:sessionId/close', ...)             // Changed
+router.post('/sessions/:sessionId/mark-read', ...)         // Changed ← Fix 404!
+router.post('/sessions/:sessionId/convert-to-ticket', ...) // Changed
+router.post('/sessions/:sessionId/archive', ...)           // Already correct
+router.post('/sessions/:sessionId/transfer', ...)          // Already correct
+```
+
+**Rationale**:
+- Public routes (widget): `/session` (singolare) - OK per "create" e "get by id"
+- Protected routes (dashboard): `/sessions` (plurale) - Standard REST per collection access
+
+**Files Modificati**:
+- `backend/src/routes/chat.routes.js` (4 routes standardizzate)
+- `backend/src/controllers/chat.controller.js` (comment aggiornato)
+
+**Deploy**:
+- ✅ Pushato su `lucine-chatbot` repository (frontend+monorepo)
+- ✅ Cherry-picked e pushato su `chatbot-lucy-2025` repository (backend Render service)
+- ⏳ Render auto-deploy in corso per backend service
+
+---
+
+## 📊 Deploy Status - 30 Ottobre 2025
+
+### Frontend Dashboard (`lucine-dashboard`)
+- **Repository**: `https://github.com/mujians/lucine-chatbot`
+- **Ultimo commit**: `ed35dd1` - "fix: Update package-lock.json and fix tags parsing"
+- **Deploy Status**: ✅ LIVE
+- **URL**: https://lucine-dashboard.onrender.com
+- **Last Modified**: 30 Ottobre 2025, 20:02:04 UTC
+
+### Backend API (`chatbot-lucy-2025`)
+- **Repository**: `https://github.com/mujians/chatbot-lucy-2025`
+- **Ultimo commit**: `5dbe346` - "fix: Standardize protected routes to use /sessions/"
+- **Deploy Status**: ⏳ Auto-deploy in corso
+- **URL**: https://chatbot-lucy-2025.onrender.com
+- **Health Check**: ✅ Responding (200 OK)
+
+---
+
+## 🧹 Repository Cleanup
+
+Durante questa sessione è emersa una **confusione sui repository**:
+
+**Struttura Corretta** (come da `RENDER_DEPLOYMENT.md`):
+```
+GitHub Repositories:
+├── lucine-chatbot          → Frontend dashboard (Render: lucine-dashboard)
+└── chatbot-lucy-2025       → Backend API (Render: chatbot-lucy-2025)
+```
+
+**Problema**:
+Il repository locale puntava alternativamente a entrambi i repository. Questo è stato risolto:
+
+**Soluzione Applicata**:
+```bash
+# Repository principale (lucine-production) ora punta a lucine-chatbot (frontend)
+git remote set-url origin https://github.com/mujians/lucine-chatbot.git
+
+# Aggiunto remote separato per backend
+git remote add backend https://github.com/mujians/chatbot-lucy-2025.git
+```
+
+**Git Remotes Attuali**:
+```bash
+origin   https://github.com/mujians/lucine-chatbot.git (frontend)
+backend  https://github.com/mujians/chatbot-lucy-2025.git (backend)
+```
+
+---
+
+## ✅ TESTING POST-DEPLOY
+
+### 1. Frontend Dashboard
+```bash
+curl -I https://lucine-dashboard.onrender.com
+# ✅ HTTP/2 200
+# ✅ Assets loaded: index-B1z_wtp4.js, index-Dm_4H5Lk.css
+```
+
+### 2. Backend API Health
+```bash
+curl -I https://chatbot-lucy-2025.onrender.com/health
+# ✅ HTTP/2 200
+# ✅ content-type: application/json
+```
+
+### 3. Mark-Read Endpoint (dopo deploy backend)
+```bash
+# Test endpoint ora dovrebbe funzionare
+curl -X POST https://chatbot-lucy-2025.onrender.com/api/chat/sessions/{sessionId}/mark-read \
+  -H "Authorization: Bearer {token}"
+# Expected: 200 OK (dopo deploy backend completa)
+```
+
+---
+
+## 📝 COMMIT HISTORY - 30 Ottobre 2025
+
+### lucine-chatbot (Frontend)
+```
+ed35dd1 - fix: Update package-lock.json and fix tags parsing in ChatWindow
+76de206 - fix: Standardize protected routes to use /sessions/ (plural)
+```
+
+### chatbot-lucy-2025 (Backend)
+```
+5dbe346 - fix: Standardize protected routes to use /sessions/ (plural)
+          (cherry-picked from 76de206)
+```
+
+---
+
+## 🎯 Sessione Precedente: Analisi Sistema Completo e Fix Architetturali - COMPLETATA ✅
 
 **Obiettivo**: Analisi completa del sistema (frontend, backend, SQL, endpoints, widget) per identificare e risolvere TUTTI i problemi tecnici, funzionali e UX
 
