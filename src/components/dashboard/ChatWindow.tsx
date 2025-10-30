@@ -89,7 +89,18 @@ export function ChatWindow({
     setUserIsTyping(false);
     if (selectedChat) {
       setPriority(selectedChat.priority || 'NORMAL');
-      setTags(selectedChat.tags ? JSON.parse(selectedChat.tags) : []);
+
+      // Parse tags with error handling
+      let parsedTags: string[] = [];
+      if (selectedChat.tags && typeof selectedChat.tags === 'string' && selectedChat.tags.trim()) {
+        try {
+          parsedTags = JSON.parse(selectedChat.tags);
+        } catch (error) {
+          console.error('Failed to parse tags for session', selectedChat.id, error);
+          parsedTags = [];
+        }
+      }
+      setTags(parsedTags);
     }
   }, [selectedChat?.id]);
 
