@@ -192,6 +192,12 @@ export const chatApi = {
   closeSession: (id: string) =>
     api.post(`/chat/sessions/${id}/close`).then(res => res.data),
 
+  sendOperatorMessage: (sessionId: string, message: string, operatorId: string) =>
+    api.post(`/chat/sessions/${sessionId}/operator-message`, {
+      message,
+      operatorId
+    }).then(res => res.data),
+
   deleteSession: (id: string) =>
     api.delete(`/chat/sessions/${id}`).then(res => res.data),
 

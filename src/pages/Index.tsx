@@ -85,6 +85,15 @@ export default function Index() {
       }
     });
 
+    socket.on('operator_message', (data) => {
+      console.log('👤 Operator message (echo):', data);
+      // Update chat messages when operator message is sent
+      // This ensures the operator sees their own message in the UI
+      if (data.message) {
+        updateChatMessages(data.sessionId, data.message);
+      }
+    });
+
     socket.on('chat_closed', (data) => {
       console.log('🔒 Chat closed:', data);
       loadChats();
@@ -206,25 +215,19 @@ export default function Index() {
     }
   };
 
-  const handleSendMessage = (message: string) => {
-    if (!selectedChat || !socket || !operator) return;
+  const handleSendMessage = async (message: string) => {
+    if (!selectedChat || !operator) return;
 
-    socket.emit('operator_message', {
-      sessionId: selectedChat.id,
-      message,
-      operatorId: operator.id,
-    });
+    try {
+      // Call REST API to send message (saves to DB + emits WebSocket)
+      await chatApi.sendOperatorMessage(selectedChat.id, message, operator.id);
 
-    // Optimistically add message to UI
-    const newMessage = {
-      id: Date.now().toString(),
-      type: 'operator' as const,
-      content: message,
-      timestamp: new Date().toISOString(),
-      operatorName: operator.name,
-    };
-
-    updateChatMessages(selectedChat.id, newMessage);
+      console.log('✅ Operator message sent via API');
+      // Message will be added to UI via WebSocket 'operator_message' event automatically
+    } catch (error: any) {
+      console.error('Failed to send operator message:', error);
+      alert(error.response?.data?.error?.message || 'Errore durante l\'invio del messaggio');
+    }
   };
 
   const handleCloseChat = () => {
