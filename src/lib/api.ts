@@ -207,8 +207,13 @@ export const chatApi = {
   unflagSession: (id: string) =>
     api.post(`/chat/sessions/${id}/unflag`).then(res => res.data),
 
-  convertToTicket: (id: string) =>
-    api.post(`/chat/sessions/${id}/convert-to-ticket`).then(res => res.data),
+  convertToTicket: (id: string, data?: {
+    contactMethod?: 'WHATSAPP' | 'EMAIL';
+    whatsappNumber?: string;
+    email?: string;
+    operatorNotes?: string;
+  }) =>
+    api.post(`/chat/sessions/${id}/convert-to-ticket`, data).then(res => res.data),
 
   transferSession: (id: string, data: { toOperatorId: string; reason?: string }) =>
     api.post(`/chat/sessions/${id}/transfer`, data).then(res => res.data),

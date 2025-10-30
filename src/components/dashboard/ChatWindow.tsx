@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History } from 'lucide-react';
+import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History, Ticket } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator, InternalNote, UserHistory } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +69,13 @@ export function ChatWindow({
   const [userHistory, setUserHistory] = useState<UserHistory | null>(null); // User History
   const [showUserHistory, setShowUserHistory] = useState(false); // User History dialog
   const [loadingHistory, setLoadingHistory] = useState(false); // Loading state
+  const [showConvertModal, setShowConvertModal] = useState(false); // Convert to Ticket modal
+  const [convertFormData, setConvertFormData] = useState({
+    contactMethod: 'WHATSAPP' as 'WHATSAPP' | 'EMAIL',
+    whatsappNumber: '',
+    email: '',
+    operatorNotes: '',
+  }); // Convert form data
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
   const fileInputRef = useRef<HTMLInputElement>(null); // File input ref
@@ -373,6 +380,39 @@ export function ChatWindow({
     }
   };
 
+  // Convert to Ticket handler
+  const handleConvertToTicket = async () => {
+    if (!selectedChat) return;
+
+    // Validate contact info
+    if (convertFormData.contactMethod === 'WHATSAPP' && !convertFormData.whatsappNumber.trim()) {
+      alert('Inserisci un numero WhatsApp');
+      return;
+    }
+    if (convertFormData.contactMethod === 'EMAIL' && !convertFormData.email.trim()) {
+      alert('Inserisci un indirizzo email');
+      return;
+    }
+
+    try {
+      await chatApi.convertToTicket(selectedChat.id, convertFormData);
+      alert('Chat convertita in ticket con successo!');
+      setShowConvertModal(false);
+      // Reset form
+      setConvertFormData({
+        contactMethod: 'WHATSAPP',
+        whatsappNumber: '',
+        email: '',
+        operatorNotes: '',
+      });
+      onCloseChat?.();
+      console.log('✅ Chat converted to ticket');
+    } catch (error) {
+      console.error('Error converting to ticket:', error);
+      alert('Errore durante la conversione in ticket');
+    }
+  };
+
   if (!selectedChat) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -467,6 +507,19 @@ export function ChatWindow({
             >
               <Archive className="h-4 w-4 mr-2" />
               Archivia
+            </Button>
+          )}
+
+          {/* Convert to Ticket Button */}
+          {selectedChat.status !== 'CLOSED' && selectedChat.status !== 'TICKET_CREATED' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConvertModal(true)}
+              title="Converti in ticket"
+            >
+              <Ticket className="h-4 w-4 mr-2" />
+              Ticket
             </Button>
           )}
 
@@ -765,6 +818,100 @@ export function ChatWindow({
         open={showUserHistory}
         onClose={() => setShowUserHistory(false)}
       />
+
+      {/* Convert to Ticket Modal */}
+      <Dialog open={showConvertModal} onOpenChange={setShowConvertModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Converti Chat in Ticket</DialogTitle>
+            <DialogDescription>
+              Crea un ticket da questa conversazione per follow-up asincrono
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Contact Method */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Metodo di Contatto</label>
+              <select
+                value={convertFormData.contactMethod}
+                onChange={(e) =>
+                  setConvertFormData({
+                    ...convertFormData,
+                    contactMethod: e.target.value as 'WHATSAPP' | 'EMAIL',
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md bg-background focus:ring-2 focus:ring-ring focus:outline-none"
+              >
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="EMAIL">Email</option>
+              </select>
+            </div>
+
+            {/* WhatsApp Number */}
+            {convertFormData.contactMethod === 'WHATSAPP' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Numero WhatsApp</label>
+                <Input
+                  type="tel"
+                  value={convertFormData.whatsappNumber}
+                  onChange={(e) =>
+                    setConvertFormData({
+                      ...convertFormData,
+                      whatsappNumber: e.target.value,
+                    })
+                  }
+                  placeholder="+39 123 456 7890"
+                />
+              </div>
+            )}
+
+            {/* Email */}
+            {convertFormData.contactMethod === 'EMAIL' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={convertFormData.email}
+                  onChange={(e) =>
+                    setConvertFormData({
+                      ...convertFormData,
+                      email: e.target.value,
+                    })
+                  }
+                  placeholder="user@example.com"
+                />
+              </div>
+            )}
+
+            {/* Operator Notes */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Note Operatore (opzionale)</label>
+              <textarea
+                value={convertFormData.operatorNotes}
+                onChange={(e) =>
+                  setConvertFormData({
+                    ...convertFormData,
+                    operatorNotes: e.target.value,
+                  })
+                }
+                rows={3}
+                placeholder="Aggiungi note per gli altri operatori..."
+                className="w-full px-3 py-2 border rounded-md bg-background focus:ring-2 focus:ring-ring focus:outline-none resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConvertModal(false)}>
+              Annulla
+            </Button>
+            <Button onClick={handleConvertToTicket}>
+              Converti in Ticket
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
