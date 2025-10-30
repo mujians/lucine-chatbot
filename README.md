@@ -70,13 +70,22 @@ Widget Shopify   →   Backend API      →   Dashboard
 - [x] Indicatore connessione WebSocket
 - [x] Loading states e error handling
 
-### DA IMPLEMENTARE (v1.1+)
-- [ ] Tickets (lista, dettaglio, assegnazione, chiusura)
-- [ ] Knowledge Base (CRUD documenti, categorie, upload)
-- [ ] Gestione Operatori (admin: CRUD, stats)
-- [ ] Settings (AI, WhatsApp, Email config)
+### NUOVE FEATURE (v1.1 - Appena Implementate)
+- [x] **Typing Indicator** - Mostra "operatore/utente sta scrivendo..." in tempo reale
+- [x] **Mark as Read** - Segna messaggi come letti quando apri chat
+- [x] **Internal Notes** - Sistema completo di note private tra operatori con sidebar
+- [x] **File Upload UI** - Caricamento allegati (immagini, PDF, documenti) con preview
+- [x] **Priority & Tags** - Sistema priorità chat (LOW/NORMAL/HIGH/URGENT) + tags custom
+- [x] **User History** - Visualizza storico completo conversazioni precedenti utente
+- [x] **Convert to Ticket** - Converti chat in ticket per follow-up asincrono
+
+### DA IMPLEMENTARE (v1.2+)
+- [ ] Tickets (lista completa, dettaglio, assegnazione, chiusura)
+- [ ] Knowledge Base (CRUD documenti, categorie, upload bulk)
+- [ ] Gestione Operatori (admin: CRUD, stats performance)
+- [ ] Settings (AI, WhatsApp, Email config completa)
 - [ ] Analytics Dashboard
-- [ ] Notifiche push
+- [ ] Notifiche push browser
 - [ ] Mobile responsive ottimizzato
 
 ---
