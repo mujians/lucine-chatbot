@@ -10,6 +10,7 @@ const SettingsPanel = () => {
   const [testingWhatsApp, setTestingWhatsApp] = useState(false);
   const [testResults, setTestResults] = useState({});
   const [activeTab, setActiveTab] = useState('general'); // P2.2: Tab state
+  const [testEmailAddress, setTestEmailAddress] = useState(''); // Custom test email address
 
   useEffect(() => {
     fetchSettings();
@@ -55,7 +56,9 @@ const SettingsPanel = () => {
     setTestResults({ ...testResults, email: null });
 
     try {
-      const response = await axios.post('/api/settings/test-email');
+      // Send custom test email if specified, otherwise use operator's email
+      const payload = testEmailAddress.trim() ? { to: testEmailAddress.trim() } : {};
+      const response = await axios.post('/api/settings/test-email', payload);
       setTestResults({
         ...testResults,
         email: { success: true, message: response.data.message },
@@ -345,6 +348,24 @@ const SettingsPanel = () => {
               <p className="text-sm text-gray-600 mb-3">
                 Testa la connessione al server SMTP per l'invio di email
               </p>
+
+              {/* Custom test email input */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email destinatario test (opzionale)
+                </label>
+                <input
+                  type="email"
+                  value={testEmailAddress}
+                  onChange={(e) => setTestEmailAddress(e.target.value)}
+                  placeholder={`Lascia vuoto per usare: ${localStorage.getItem('operator_email') || 'email operatore'}`}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-christmas-green"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Se vuoto, l'email verrà inviata all'indirizzo dell'operatore loggato
+                </p>
+              </div>
+
               {testResults.email && (
                 <div
                   className={`text-sm p-3 rounded-lg mb-3 ${
