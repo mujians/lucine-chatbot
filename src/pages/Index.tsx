@@ -137,12 +137,19 @@ export default function Index() {
 
       // Parse messages JSON string and add computed lastMessage
       const parsedChats = sessionsData.map((session: any) => {
-        // Parse messages if it's a JSON string
-        const messages = typeof session.messages === 'string'
-          ? JSON.parse(session.messages)
-          : Array.isArray(session.messages)
-          ? session.messages
-          : [];
+        // Parse messages if it's a JSON string (with error handling)
+        let messages = [];
+
+        if (typeof session.messages === 'string' && session.messages.trim()) {
+          try {
+            messages = JSON.parse(session.messages);
+          } catch (error) {
+            console.error('Failed to parse messages for session', session.id, error);
+            messages = [];
+          }
+        } else if (Array.isArray(session.messages)) {
+          messages = session.messages;
+        }
 
         return {
           ...session,
