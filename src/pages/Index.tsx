@@ -45,6 +45,19 @@ export default function Index() {
     loadChats();
   }, [searchQuery, showArchived, showOnlyFlagged]);
 
+  // Join operator room when socket connects
+  useEffect(() => {
+    if (!socket || !operator) return;
+
+    // Join operator-specific room to receive user_message events
+    socket.emit('operator_join', { operatorId: operator.id });
+    console.log('👤 Joined operator room:', operator.id);
+
+    return () => {
+      socket.emit('operator_leave', { operatorId: operator.id });
+    };
+  }, [socket, operator]);
+
   // Listen to WebSocket events
   useEffect(() => {
     if (!socket) return;
@@ -176,16 +189,26 @@ export default function Index() {
   };
 
   const updateChatMessages = (sessionId: string, newMessage: any) => {
-    setChats(prev => prev.map(chat =>
-      chat.id === sessionId
-        ? {
-            ...chat,
-            messages: [...(chat.messages || []), newMessage],
-            lastMessage: newMessage,
-            lastMessageAt: newMessage.timestamp,
-          }
-        : chat
-    ));
+    setChats(prev => {
+      // Find and update the chat with new message
+      const updatedChats = prev.map(chat =>
+        chat.id === sessionId
+          ? {
+              ...chat,
+              messages: [...(chat.messages || []), newMessage],
+              lastMessage: newMessage,
+              lastMessageAt: newMessage.timestamp,
+            }
+          : chat
+      );
+
+      // Re-sort chats by lastMessageAt (most recent first)
+      return updatedChats.sort((a, b) => {
+        const dateA = new Date(a.lastMessageAt || a.createdAt).getTime();
+        const dateB = new Date(b.lastMessageAt || b.createdAt).getTime();
+        return dateB - dateA;
+      });
+    });
 
     // Update selected chat if it's the one receiving the message
     if (selectedChat?.id === sessionId) {
@@ -196,14 +219,26 @@ export default function Index() {
     }
   };
 
-  const handleSelectChat = (chat: ChatSession) => {
+  const handleSelectChat = async (chat: ChatSession) => {
     setSelectedChat(chat);
 
-    // Decrementa unread count quando si apre una chat
-    if (unreadCount > 0) {
-      const newCount = Math.max(0, unreadCount - 1);
-      setUnreadCount(newCount);
-      notificationService.updateBadgeCount(newCount);
+    // Mark messages as read
+    if (chat.unreadMessageCount && chat.unreadMessageCount > 0) {
+      try {
+        await chatApi.markAsRead(chat.id);
+
+        // Update local state: reset unread count for this chat
+        setChats(prev => prev.map(c =>
+          c.id === chat.id ? { ...c, unreadMessageCount: 0 } : c
+        ));
+
+        // Decrementa global unread count
+        const newCount = Math.max(0, unreadCount - (chat.unreadMessageCount || 0));
+        setUnreadCount(newCount);
+        notificationService.updateBadgeCount(newCount);
+      } catch (error) {
+        console.error('Failed to mark messages as read:', error);
+      }
     }
 
     // Notify backend that operator joined this chat

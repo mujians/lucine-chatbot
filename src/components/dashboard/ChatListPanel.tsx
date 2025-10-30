@@ -121,6 +121,11 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
                       {chat.isFlagged && (
                         <Flag className="h-3 w-3 text-orange-500 shrink-0" />
                       )}
+                      {(chat.unreadMessageCount || 0) > 0 && (
+                        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-white bg-red-500 rounded-full shrink-0">
+                          {(chat.unreadMessageCount || 0) > 9 ? '9+' : chat.unreadMessageCount}
+                        </span>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0 ml-2">
                       {format(new Date(chat.createdAt), 'HH:mm', { locale: it })}

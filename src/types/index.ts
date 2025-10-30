@@ -59,6 +59,7 @@ export interface ChatSession {
   lastMessageAt: string;
   closedAt?: string;
   lastMessage?: ChatMessage;  // Computed field for UI
+  unreadMessageCount?: number;  // Number of unread messages from user
 }
 
 export interface Operator {
