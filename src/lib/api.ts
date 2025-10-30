@@ -212,6 +212,9 @@ export const chatApi = {
 
   transferSession: (id: string, data: { toOperatorId: string; reason?: string }) =>
     api.post(`/chat/sessions/${id}/transfer`, data).then(res => res.data),
+
+  markAsRead: (id: string) =>
+    api.post(`/chat/sessions/${id}/mark-read`).then(res => res.data),
 };
 
 // ============================================

@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { chatApi, operatorsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { QuickReplyPicker } from './QuickReplyPicker';
 import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
@@ -56,14 +57,55 @@ export function ChatWindow({
   const [actionLoading, setActionLoading] = useState(false);
   const [showQuickReply, setShowQuickReply] = useState(false);
   const [quickReplySearch, setQuickReplySearch] = useState('');
+  const [userIsTyping, setUserIsTyping] = useState(false); // Typing indicator
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce typing
   const { operator: currentOperator } = useAuth();
+  const { socket } = useSocket();
 
   // Reset message input when chat changes
   useEffect(() => {
     setMessage('');
     setFlagReason('');
+    setUserIsTyping(false);
   }, [selectedChat?.id]);
+
+  // Mark messages as read when opening chat
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    const markMessagesAsRead = async () => {
+      try {
+        await chatApi.markAsRead(selectedChat.id);
+        console.log('✅ Messages marked as read');
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+
+    markMessagesAsRead();
+  }, [selectedChat?.id]);
+
+  // Listen for user typing indicator
+  useEffect(() => {
+    if (!socket || !selectedChat) return;
+
+    const handleUserTyping = (data: { sessionId: string; isTyping: boolean }) => {
+      if (data.sessionId === selectedChat.id) {
+        setUserIsTyping(data.isTyping);
+      }
+    };
+
+    socket.on('user_typing', handleUserTyping);
+
+    // Cleanup
+    return () => {
+      socket.off('user_typing', handleUserTyping);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [socket, selectedChat]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -144,6 +186,29 @@ export function ChatWindow({
     } else {
       setShowQuickReply(false);
       setQuickReplySearch('');
+    }
+
+    // Emit operator typing indicator
+    if (socket && selectedChat) {
+      socket.emit('operator_typing', {
+        sessionId: selectedChat.id,
+        operatorName: currentOperator?.name || 'Operatore',
+        isTyping: true,
+      });
+
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Stop typing after 1 second of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('operator_typing', {
+          sessionId: selectedChat.id,
+          operatorName: currentOperator?.name || 'Operatore',
+          isTyping: false,
+        });
+      }, 1000);
     }
   };
 
@@ -337,6 +402,20 @@ export function ChatWindow({
               </div>
             </div>
           ))}
+
+          {/* Typing indicator */}
+          {userIsTyping && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-lg p-3">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                  <span className="text-xs text-muted-foreground ml-2">sta scrivendo...</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
