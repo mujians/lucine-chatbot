@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History, Ticket } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator, InternalNote, UserHistory } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -137,13 +137,7 @@ export function ChatWindow({
     }
   }, [selectedChat?.messages, selectedChat?.id]);
 
-  useEffect(() => {
-    if (showTransferDialog) {
-      loadAvailableOperators();
-    }
-  }, [showTransferDialog]);
-
-  const loadAvailableOperators = async () => {
+  const loadAvailableOperators = useCallback(async () => {
     try {
       const response = await operatorsApi.getOnline();
       const allOperators = response.data || response;
@@ -155,7 +149,13 @@ export function ChatWindow({
     } catch (error) {
       console.error('Failed to load operators:', error);
     }
-  };
+  }, [currentOperator?.id]);
+
+  useEffect(() => {
+    if (showTransferDialog) {
+      loadAvailableOperators();
+    }
+  }, [showTransferDialog, loadAvailableOperators]);
 
   const handleTransfer = async () => {
     if (!selectedChat || !selectedOperatorId) return;
