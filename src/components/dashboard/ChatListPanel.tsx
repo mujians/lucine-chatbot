@@ -23,6 +23,7 @@ interface ChatListPanelProps {
   onDeleteChat?: (chat: ChatSession) => void;
   onArchiveChat?: (chat: ChatSession) => void;
   onFlagChat?: (chat: ChatSession) => void;
+  onAcceptChat?: (chat: ChatSession) => void;
   onToggleChatSelection?: (chatId: string) => void;
 }
 
@@ -71,7 +72,7 @@ const getStatusLabel = (status: ChatStatus) => {
   }
 };
 
-export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onSelectChat, onDeleteChat, onArchiveChat, onFlagChat, onToggleChatSelection }: ChatListPanelProps) {
+export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onSelectChat, onDeleteChat, onArchiveChat, onFlagChat, onAcceptChat, onToggleChatSelection }: ChatListPanelProps) {
   return (
     <ScrollArea className="flex-1">
       <div className="p-2">
@@ -143,6 +144,22 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
                     <p className="text-xs text-muted-foreground truncate">
                       {chat.lastMessage.content}
                     </p>
+                  )}
+
+                  {/* Accept Button for WAITING chats */}
+                  {chat.status === ChatStatus.WAITING && onAcceptChat && (
+                    <div className="mt-2">
+                      <Button
+                        size="sm"
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAcceptChat(chat);
+                        }}
+                      >
+                        ✓ Accetta Chat
+                      </Button>
+                    </div>
                   )}
                 </button>
 

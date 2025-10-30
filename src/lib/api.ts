@@ -198,6 +198,11 @@ export const chatApi = {
       operatorId
     }).then(res => res.data),
 
+  acceptOperator: (sessionId: string, operatorId: string) =>
+    api.post(`/chat/sessions/${sessionId}/accept-operator`, {
+      operatorId
+    }).then(res => res.data),
+
   deleteSession: (id: string) =>
     api.delete(`/chat/sessions/${id}`).then(res => res.data),
 

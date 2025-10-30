@@ -271,64 +271,242 @@ export const requestOperator = async (req, res) => {
       });
     }
 
-    // Assign to least busy operator
-    const assignedOperator = availableOperators[0];
-
-    // Update session
+    // Update session to WAITING status (not WITH_OPERATOR yet)
     await prisma.chatSession.update({
       where: { id: sessionId },
       data: {
-        status: 'WITH_OPERATOR',
-        operatorId: assignedOperator.id,
+        status: 'WAITING',  // User is waiting for operator to accept
+        lastMessageAt: new Date(),
       },
     });
 
-    // Add system message
+    // Notify ALL available operators about the pending request
     const messages = JSON.parse(session.messages || '[]');
-    messages.push({
-      id: Date.now().toString(),
-      type: 'system',
-      content: `${assignedOperator.name} si è unito alla chat`,
+    const lastUserMessage = messages.filter(m => m.type === 'user').slice(-1)[0];
+
+    // Emit to all available operators (they can see it in dashboard)
+    for (const operator of availableOperators) {
+      io.to(`operator_${operator.id}`).emit('new_chat_request', {
+        sessionId: sessionId,
+        userName: session.userName || `Utente #${sessionId.slice(0, 8)}`,
+        lastMessage: lastUserMessage?.content || '',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Notify dashboard to show pending chat
+    io.to('dashboard').emit('chat_waiting_operator', {
+      sessionId: sessionId,
+      userName: session.userName,
       timestamp: new Date().toISOString(),
     });
 
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: { messages: JSON.stringify(messages) },
-    });
-
-    // Notify operator via WebSocket
-    io.to(`operator_${assignedOperator.id}`).emit('new_chat_request', {
+    // Notify widget that request was sent (status now WAITING)
+    io.to(`chat_${sessionId}`).emit('operator_request_sent', {
       sessionId: sessionId,
-      userName: session.userName,
-      lastMessage: messages[messages.length - 2]?.content || '',
-    });
-
-    // Notify dashboard
-    io.to('dashboard').emit('chat_assigned', {
-      sessionId: sessionId,
-      operatorId: assignedOperator.id,
-    });
-
-    // Notify widget user that operator joined
-    io.to(`chat_${sessionId}`).emit('operator_assigned', {
-      sessionId: sessionId,
-      operatorName: assignedOperator.name,
-      operatorId: assignedOperator.id,
+      status: 'WAITING',
+      message: 'Richiesta inviata. In attesa di un operatore...',
     });
 
     res.json({
       success: true,
       data: {
         operatorAvailable: true,
-        operator: {
-          id: assignedOperator.id,
-          name: assignedOperator.name,
-        },
+        status: 'WAITING',
+        message: 'Richiesta inviata agli operatori disponibili',
       },
     });
   } catch (error) {
     console.error('Request operator error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * Cancel operator request
+ * POST /api/chat/session/:sessionId/cancel-operator-request
+ * User cancels their operator request while waiting
+ */
+export const cancelOperatorRequest = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Get session
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Verify session is in WAITING status
+    if (session.status !== 'WAITING') {
+      return res.status(400).json({
+        error: { message: 'Session is not waiting for operator' },
+      });
+    }
+
+    // Update session: revert to ACTIVE status
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        status: 'ACTIVE',
+        lastMessageAt: new Date(),
+      },
+    });
+
+    // Notify dashboard: remove this request from pending list
+    io.to('dashboard').emit('chat_request_cancelled', {
+      sessionId: sessionId,
+      reason: 'cancelled_by_user',
+    });
+
+    // Notify widget: request cancelled, back to AI
+    io.to(`chat_${sessionId}`).emit('operator_request_cancelled', {
+      sessionId: sessionId,
+      status: 'ACTIVE',
+      message: 'Richiesta annullata. Puoi continuare a chattare con l\'assistente AI.',
+    });
+
+    console.log(`🚫 User cancelled operator request for session ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: {
+        status: 'ACTIVE',
+        message: 'Richiesta operatore annullata',
+      },
+    });
+  } catch (error) {
+    console.error('Cancel operator request error:', error);
+    res.status(500).json({
+      error: { message: 'Internal server error' },
+    });
+  }
+};
+
+/**
+ * Accept operator chat request
+ * POST /api/chat/sessions/:sessionId/accept-operator
+ * Operator clicks "Accept" button in dashboard
+ */
+export const acceptOperator = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { operatorId } = req.body;
+
+    if (!operatorId) {
+      return res.status(400).json({
+        error: { message: 'Operator ID is required' },
+      });
+    }
+
+    // Get session
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: { message: 'Session not found' },
+      });
+    }
+
+    // Verify session is in WAITING status
+    if (session.status !== 'WAITING') {
+      return res.status(400).json({
+        error: { message: 'Session is not waiting for operator' },
+      });
+    }
+
+    // Get operator details
+    const operator = await prisma.operator.findUnique({
+      where: { id: operatorId },
+    });
+
+    if (!operator) {
+      return res.status(404).json({
+        error: { message: 'Operator not found' },
+      });
+    }
+
+    // Update session: assign operator and change status to WITH_OPERATOR
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        status: 'WITH_OPERATOR',
+        operatorId: operatorId,
+      },
+    });
+
+    // Add system message: "Operator joined"
+    const messages = JSON.parse(session.messages || '[]');
+    const systemMessage = {
+      id: Date.now().toString(),
+      type: 'system',
+      content: `${operator.name} si è unito alla chat`,
+      timestamp: new Date().toISOString(),
+    };
+    messages.push(systemMessage);
+
+    await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        messages: JSON.stringify(messages),
+        lastMessageAt: new Date(),
+      },
+    });
+
+    // Update operator stats
+    await prisma.operator.update({
+      where: { id: operatorId },
+      data: {
+        activeChats: { increment: 1 },
+        totalChatsHandled: { increment: 1 },
+      },
+    });
+
+    // Notify widget: operator joined
+    io.to(`chat_${sessionId}`).emit('operator_joined', {
+      sessionId: sessionId,
+      operatorName: operator.name,
+      operatorId: operator.id,
+      message: systemMessage,
+    });
+
+    // Notify dashboard: chat accepted
+    io.to('dashboard').emit('chat_accepted', {
+      sessionId: sessionId,
+      operatorId: operator.id,
+      operatorName: operator.name,
+    });
+
+    // Notify OTHER operators: this chat is now taken
+    io.to('dashboard').emit('chat_request_cancelled', {
+      sessionId: sessionId,
+      reason: 'accepted_by_another_operator',
+    });
+
+    console.log(`✅ Operator ${operator.name} accepted chat ${sessionId}`);
+
+    res.json({
+      success: true,
+      data: {
+        session: {
+          id: sessionId,
+          status: 'WITH_OPERATOR',
+          operatorId: operator.id,
+          operatorName: operator.name,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Accept operator error:', error);
     res.status(500).json({
       error: { message: 'Internal server error' },
     });

@@ -4,6 +4,8 @@ import {
   getSession,
   sendUserMessage,
   requestOperator,
+  cancelOperatorRequest,
+  acceptOperator,
   sendOperatorMessage,
   closeSession,
   getSessions,
@@ -35,9 +37,11 @@ router.post('/session', createSession);
 router.get('/session/:sessionId', getSession);
 router.post('/session/:sessionId/message', sendUserMessage);
 router.post('/session/:sessionId/request-operator', requestOperator);
+router.post('/session/:sessionId/cancel-operator-request', cancelOperatorRequest);
 
 // Protected routes (for operators)
 router.get('/sessions', authenticateToken, getSessions);
+router.post('/sessions/:sessionId/accept-operator', authenticateToken, acceptOperator);
 router.post('/sessions/:sessionId/operator-message', authenticateToken, sendOperatorMessage);
 router.post('/sessions/:sessionId/close', authenticateToken, closeSession);
 router.post('/sessions/:sessionId/mark-read', authenticateToken, markMessagesAsRead);

@@ -136,12 +136,48 @@ export default function Index() {
       updateChatMessages(data.sessionId, data.message);
     });
 
+    socket.on('chat_waiting_operator', (data) => {
+      console.log('⏳ Chat waiting for operator:', data);
+      loadChats();
+
+      // Notify all operators about pending request
+      notificationService.notifyNewChat(
+        data.sessionId,
+        data.userName || 'Utente sconosciuto'
+      );
+
+      setUnreadCount(prev => prev + 1);
+      notificationService.updateBadgeCount(unreadCount + 1);
+    });
+
+    socket.on('chat_accepted', (data) => {
+      console.log('✅ Chat accepted by operator:', data);
+      loadChats();
+    });
+
+    socket.on('chat_request_cancelled', (data) => {
+      console.log('🚫 Chat request cancelled:', data);
+      loadChats();
+    });
+
+    socket.on('operator_joined', (data) => {
+      console.log('👤 Operator joined chat:', data);
+      if (data.message) {
+        updateChatMessages(data.sessionId, data.message);
+      }
+      loadChats();
+    });
+
     return () => {
       socket.off('new_chat_request');
       socket.off('user_message');
       socket.off('chat_closed');
       socket.off('chat_assigned');
       socket.off('message_received');
+      socket.off('chat_waiting_operator');
+      socket.off('chat_accepted');
+      socket.off('chat_request_cancelled');
+      socket.off('operator_joined');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
@@ -318,6 +354,23 @@ export default function Index() {
     } catch (error) {
       console.error('Failed to flag/unflag chat:', error);
       alert('Errore durante la segnalazione della chat');
+    }
+  };
+
+  const handleAcceptChat = async (chat: ChatSession) => {
+    if (!operator) return;
+
+    try {
+      console.log(`✅ Accepting chat ${chat.id} for operator ${operator.id}`);
+      await chatApi.acceptOperator(chat.id, operator.id);
+
+      // Automatically select and open the chat after accepting
+      setSelectedChat(chat);
+
+      loadChats();
+    } catch (error: any) {
+      console.error('Failed to accept chat:', error);
+      alert(error.response?.data?.error?.message || 'Errore durante l\'accettazione della chat');
     }
   };
 
@@ -603,6 +656,7 @@ export default function Index() {
             onDeleteChat={handleDeleteChat}
             onArchiveChat={handleArchiveChat}
             onFlagChat={handleFlagChat}
+            onAcceptChat={handleAcceptChat}
             onToggleChatSelection={handleToggleChatSelection}
           />
         </div>
