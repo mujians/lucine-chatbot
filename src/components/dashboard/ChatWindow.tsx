@@ -62,17 +62,24 @@ export function ChatWindow({
   const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]); // Internal Notes
   const [showNotes, setShowNotes] = useState(false); // Notes sidebar toggle
   const [uploadingFile, setUploadingFile] = useState(false); // File upload state
+  const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL'); // Priority
+  const [tags, setTags] = useState<string[]>([]); // Tags
+  const [newTag, setNewTag] = useState(''); // New tag input
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
   const fileInputRef = useRef<HTMLInputElement>(null); // File input ref
   const { operator: currentOperator } = useAuth();
   const { socket } = useSocket();
 
-  // Reset message input when chat changes
+  // Reset message input and initialize priority/tags when chat changes
   useEffect(() => {
     setMessage('');
     setFlagReason('');
     setUserIsTyping(false);
+    if (selectedChat) {
+      setPriority(selectedChat.priority || 'NORMAL');
+      setTags(selectedChat.tags ? JSON.parse(selectedChat.tags) : []);
+    }
   }, [selectedChat?.id]);
 
   // Mark messages as read when opening chat
@@ -301,6 +308,46 @@ export function ChatWindow({
     }
   };
 
+  // P1.8: Priority & Tags handlers
+  const handlePriorityChange = async (newPriority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT') => {
+    if (!selectedChat) return;
+    try {
+      await chatApi.updatePriority(selectedChat.id, newPriority);
+      setPriority(newPriority);
+      console.log('✅ Priority updated:', newPriority);
+    } catch (error) {
+      console.error('Error updating priority:', error);
+      alert('Errore durante l\'aggiornamento della priorità');
+    }
+  };
+
+  const handleAddTag = async () => {
+    if (!newTag.trim() || !selectedChat) return;
+    const updatedTags = [...tags, newTag.trim()];
+    try {
+      await chatApi.updateTags(selectedChat.id, updatedTags);
+      setTags(updatedTags);
+      setNewTag('');
+      console.log('✅ Tag added:', newTag);
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      alert('Errore durante l\'aggiunta del tag');
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove: string) => {
+    if (!selectedChat) return;
+    const updatedTags = tags.filter((t) => t !== tagToRemove);
+    try {
+      await chatApi.updateTags(selectedChat.id, updatedTags);
+      setTags(updatedTags);
+      console.log('✅ Tag removed:', tagToRemove);
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      alert('Errore durante la rimozione del tag');
+    }
+  };
+
   if (!selectedChat) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -412,6 +459,63 @@ export function ChatWindow({
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
           </Button>
+        </div>
+      </div>
+
+      {/* P1.8: Priority & Tags Section */}
+      <div className="border-b bg-card px-6 py-3 flex items-center gap-4">
+        {/* Priority Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Priorità:</span>
+          <select
+            value={priority}
+            onChange={(e) => handlePriorityChange(e.target.value as 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT')}
+            className="px-3 py-1 text-sm border rounded-md bg-background focus:ring-2 focus:ring-ring focus:outline-none"
+          >
+            <option value="LOW">🟢 Bassa</option>
+            <option value="NORMAL">🔵 Normale</option>
+            <option value="HIGH">🟠 Alta</option>
+            <option value="URGENT">🔴 Urgente</option>
+          </select>
+        </div>
+
+        {/* Tags */}
+        <div className="flex items-center gap-2 flex-wrap flex-1">
+          <span className="text-sm text-muted-foreground">Tags:</span>
+          {tags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+            >
+              {tag}
+              <button
+                onClick={() => handleRemoveTag(tag)}
+                className="hover:text-primary/80 font-bold"
+                title="Rimuovi tag"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <div className="flex items-center gap-1">
+            <Input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+              placeholder="Aggiungi tag"
+              className="w-32 h-7 text-sm"
+            />
+            <Button
+              onClick={handleAddTag}
+              size="sm"
+              variant="secondary"
+              className="h-7"
+              disabled={!newTag.trim()}
+            >
+              +
+            </Button>
+          </div>
         </div>
       </div>
 

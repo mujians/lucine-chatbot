@@ -43,6 +43,8 @@ export interface ChatSession {
   aiConfidence?: number;
   aiTokensUsed?: number;
   operatorJoinedAt?: string;
+  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  tags?: string;  // JSON string array
   isArchived: boolean;
   archivedAt?: string;
   archivedBy?: string;

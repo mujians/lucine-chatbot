@@ -234,6 +234,13 @@ export const chatApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(res => res.data);
   },
+
+  // Priority & Tags (P1.8)
+  updatePriority: (id: string, priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT') =>
+    api.put(`/chat/sessions/${id}/priority`, { priority }).then(res => res.data),
+
+  updateTags: (id: string, tags: string[]) =>
+    api.put(`/chat/sessions/${id}/tags`, { tags }).then(res => res.data),
 };
 
 // ============================================
