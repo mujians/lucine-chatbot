@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip } from 'lucide-react';
-import type { ChatSession, ChatMessage, Operator, InternalNote } from '@/types';
+import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History } from 'lucide-react';
+import type { ChatSession, ChatMessage, Operator, InternalNote, UserHistory } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSocket } from '@/contexts/SocketContext';
 import { QuickReplyPicker } from './QuickReplyPicker';
 import { InternalNotesSidebar } from './InternalNotesSidebar';
+import { UserHistoryDialog } from './UserHistoryDialog';
 import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
 interface ChatWindowProps {
@@ -65,6 +66,9 @@ export function ChatWindow({
   const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL'); // Priority
   const [tags, setTags] = useState<string[]>([]); // Tags
   const [newTag, setNewTag] = useState(''); // New tag input
+  const [userHistory, setUserHistory] = useState<UserHistory | null>(null); // User History
+  const [showUserHistory, setShowUserHistory] = useState(false); // User History dialog
+  const [loadingHistory, setLoadingHistory] = useState(false); // Loading state
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
   const fileInputRef = useRef<HTMLInputElement>(null); // File input ref
@@ -348,6 +352,27 @@ export function ChatWindow({
     }
   };
 
+  // P0.2: User History handler
+  const handleLoadUserHistory = async () => {
+    if (!selectedChat?.userId) {
+      alert('Nessun utente registrato associato a questa chat');
+      return;
+    }
+
+    setLoadingHistory(true);
+    try {
+      const response = await chatApi.getUserHistory(selectedChat.userId);
+      setUserHistory(response.data || response);
+      setShowUserHistory(true);
+      console.log('✅ User history loaded');
+    } catch (error) {
+      console.error('Error loading user history:', error);
+      alert('Errore durante il caricamento dello storico utente');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   if (!selectedChat) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -455,6 +480,20 @@ export function ChatWindow({
             <StickyNote className="h-4 w-4 mr-2" />
             Note ({internalNotes.length})
           </Button>
+
+          {/* User History Button (P0.2) */}
+          {selectedChat.userId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLoadUserHistory}
+              disabled={loadingHistory}
+              title="Storico utente"
+            >
+              <History className="h-4 w-4 mr-2" />
+              {loadingHistory ? 'Caricamento...' : 'Storico'}
+            </Button>
+          )}
 
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
@@ -717,6 +756,14 @@ export function ChatWindow({
         onNotesChange={setInternalNotes}
         isOpen={showNotes}
         onClose={() => setShowNotes(false)}
+      />
+
+      {/* User History Dialog (P0.2) */}
+      <UserHistoryDialog
+        userHistory={userHistory}
+        currentSessionId={selectedChat.id}
+        open={showUserHistory}
+        onClose={() => setShowUserHistory(false)}
       />
     </div>
   );

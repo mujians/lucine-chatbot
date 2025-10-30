@@ -241,6 +241,10 @@ export const chatApi = {
 
   updateTags: (id: string, tags: string[]) =>
     api.put(`/chat/sessions/${id}/tags`, { tags }).then(res => res.data),
+
+  // User History (P0.2)
+  getUserHistory: (userId: string) =>
+    api.get(`/chat/users/${userId}/history`).then(res => res.data),
 };
 
 // ============================================

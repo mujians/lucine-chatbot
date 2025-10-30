@@ -29,6 +29,7 @@ export interface InternalNote {
 
 export interface ChatSession {
   id: string;
+  userId?: string;  // User ID for fetching history
   userName: string | null;  // Backend has userName, not userId
   userAgent?: string;
   ipAddress?: string;
@@ -237,4 +238,20 @@ export interface CannedResponse {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// ============================================
+// USER HISTORY (P0.2)
+// ============================================
+
+export interface UserHistory {
+  user: {
+    id: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    totalChats: number;
+    firstSeenAt: string;
+  };
+  sessions: ChatSession[];
 }
