@@ -397,6 +397,30 @@ frontend-dashboard/
 
 ---
 
-**Documento aggiornato:** 30 Ottobre 2025
+## 🐛 Bug Fixes Post-Implementation
+
+### Critical Fixes (30 Ott 2025)
+
+#### 1. JSON.parse Crash (bdcd416)
+**Problema**: Dashboard crash quando si apre chat con messaggi vuoti
+**Errore**: `Unexpected end of JSON input`
+**Causa**: `JSON.parse("")` su stringa vuota
+**Fix**: Aggiunto try-catch con validazione `messages.trim()` prima del parsing
+
+#### 2. useCallback Hook Ordering (3c22eba)
+**Problema**: Funzione chiamata prima di essere definita
+**Errore**: Potenziale undefined function in useEffect
+**Causa**: `loadAvailableOperators` chiamata in useEffect ma definita dopo
+**Fix**: Wrapped con `useCallback` e spostata prima del useEffect
+
+#### 3. TypeScript Unused Import (d151ec0)
+**Problema**: Build failure su Render
+**Errore**: `TS6133: 'cn' is declared but its value is never read`
+**Causa**: Import non utilizzato in InternalNotesSidebar
+**Fix**: Rimosso import inutilizzato
+
+---
+
+**Documento aggiornato:** 30 Ottobre 2025 (Post-Bugfix)
 **Autore:** Claude Code
-**Versione Dashboard:** v1.1
+**Versione Dashboard:** v1.1.1
