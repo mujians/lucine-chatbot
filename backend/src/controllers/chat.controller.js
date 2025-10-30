@@ -5,6 +5,224 @@ import { emailService } from '../services/email.service.js';
 import { uploadService } from '../services/upload.service.js';
 
 /**
+ * BUG #6: Create single message in Message table with transaction
+ * Replaces addMessageWithLock for new Message model
+ */
+async function createMessage(sessionId, messageData, additionalSessionData = {}) {
+  return await prisma.$transaction(async (tx) => {
+    // Step 1: Lock the session row with FOR UPDATE
+    // Cast column to text instead of casting parameter to uuid
+    const session = await tx.$queryRaw`
+      SELECT * FROM "ChatSession"
+      WHERE id::text = ${sessionId}
+      FOR UPDATE
+    `;
+
+    if (!session || session.length === 0) {
+      throw new Error('Session not found');
+    }
+
+    // Step 2: Create message in Message table
+    const message = await tx.message.create({
+      data: {
+        sessionId,
+        type: messageData.type,
+        content: messageData.content,
+        operatorId: messageData.operatorId || null,
+        operatorName: messageData.operatorName || null,
+        aiConfidence: messageData.aiConfidence || null,
+        aiSuggestOperator: messageData.aiSuggestOperator || false,
+        attachmentUrl: messageData.attachmentUrl || null,
+        attachmentPublicId: messageData.attachmentPublicId || null,
+        attachmentName: messageData.attachmentName || null,
+        attachmentMimetype: messageData.attachmentMimetype || null,
+        attachmentResourceType: messageData.attachmentResourceType || null,
+        attachmentSize: messageData.attachmentSize || null,
+      },
+    });
+
+    // Step 3: Update session with additional data
+    const updated = await tx.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        lastMessageAt: new Date(),
+        ...additionalSessionData,
+      },
+    });
+
+    return { message, session: updated };
+  });
+}
+
+/**
+ * BUG #6: Create multiple messages in Message table with transaction
+ * Replaces addMessagesWithLock for new Message model
+ */
+async function createMessages(sessionId, messagesData, additionalSessionData = {}) {
+  return await prisma.$transaction(async (tx) => {
+    // Step 1: Lock the session row with FOR UPDATE
+    // Cast column to text instead of casting parameter to uuid
+    const session = await tx.$queryRaw`
+      SELECT * FROM "ChatSession"
+      WHERE id::text = ${sessionId}
+      FOR UPDATE
+    `;
+
+    if (!session || session.length === 0) {
+      throw new Error('Session not found');
+    }
+
+    // Step 2: Create all messages in Message table
+    const messages = await Promise.all(
+      messagesData.map((messageData) =>
+        tx.message.create({
+          data: {
+            sessionId,
+            type: messageData.type,
+            content: messageData.content,
+            operatorId: messageData.operatorId || null,
+            operatorName: messageData.operatorName || null,
+            aiConfidence: messageData.aiConfidence || null,
+            aiSuggestOperator: messageData.aiSuggestOperator || false,
+            attachmentUrl: messageData.attachmentUrl || null,
+            attachmentPublicId: messageData.attachmentPublicId || null,
+            attachmentName: messageData.attachmentName || null,
+            attachmentMimetype: messageData.attachmentMimetype || null,
+            attachmentResourceType: messageData.attachmentResourceType || null,
+            attachmentSize: messageData.attachmentSize || null,
+          },
+        })
+      )
+    );
+
+    // Step 3: Update session with additional data
+    const updated = await tx.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        lastMessageAt: new Date(),
+        ...additionalSessionData,
+      },
+    });
+
+    return { messages, session: updated };
+  });
+}
+
+/**
+ * BUG #5 FIX: Add internal note with pessimistic locking
+ * Prevents race conditions when multiple operators add notes simultaneously
+ */
+async function addInternalNoteWithLock(sessionId, newNote) {
+  return await prisma.$transaction(async (tx) => {
+    // Step 1: Lock the session row with FOR UPDATE
+    const session = await tx.$queryRaw`
+      SELECT * FROM "ChatSession"
+      WHERE id = ${sessionId}::uuid
+      FOR UPDATE
+    `;
+
+    if (!session || session.length === 0) {
+      throw new Error('Session not found');
+    }
+
+    // Step 2: Parse existing notes safely
+    const notes = JSON.parse(session[0].internalNotes || '[]');
+
+    // Step 3: Add new note
+    notes.push(newNote);
+
+    // Step 4: Update with new notes array
+    const updated = await tx.chatSession.update({
+      where: { id: sessionId },
+      data: { internalNotes: JSON.stringify(notes) },
+    });
+
+    return updated;
+  });
+}
+
+/**
+ * BUG #5 FIX: Update internal note with pessimistic locking
+ * Prevents race conditions when modifying notes
+ */
+async function updateInternalNoteWithLock(sessionId, noteId, updatedContent) {
+  return await prisma.$transaction(async (tx) => {
+    // Step 1: Lock the session row with FOR UPDATE
+    const session = await tx.$queryRaw`
+      SELECT * FROM "ChatSession"
+      WHERE id = ${sessionId}::uuid
+      FOR UPDATE
+    `;
+
+    if (!session || session.length === 0) {
+      throw new Error('Session not found');
+    }
+
+    // Step 2: Parse existing notes safely
+    const notes = JSON.parse(session[0].internalNotes || '[]');
+
+    // Step 3: Find and update the note
+    const noteIndex = notes.findIndex(note => note.id === noteId);
+    if (noteIndex === -1) {
+      throw new Error('Note not found');
+    }
+
+    notes[noteIndex] = {
+      ...notes[noteIndex],
+      content: updatedContent,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Step 4: Update with modified notes array
+    const updated = await tx.chatSession.update({
+      where: { id: sessionId },
+      data: { internalNotes: JSON.stringify(notes) },
+    });
+
+    return updated;
+  });
+}
+
+/**
+ * AUDIT FIX: Delete internal note with pessimistic locking
+ * Prevents race conditions when deleting notes (matches add/update pattern)
+ */
+async function deleteInternalNoteWithLock(sessionId, noteId) {
+  return await prisma.$transaction(async (tx) => {
+    // Step 1: Lock the session row with FOR UPDATE
+    const session = await tx.$queryRaw`
+      SELECT * FROM "ChatSession"
+      WHERE id = ${sessionId}::uuid
+      FOR UPDATE
+    `;
+
+    if (!session || session.length === 0) {
+      throw new Error('Session not found');
+    }
+
+    // Step 2: Parse existing notes safely
+    const notes = JSON.parse(session[0].internalNotes || '[]');
+
+    // Step 3: Find and remove the note
+    const noteIndex = notes.findIndex(note => note.id === noteId);
+    if (noteIndex === -1) {
+      throw new Error('Note not found');
+    }
+
+    // Remove note from array
+    notes.splice(noteIndex, 1);
+
+    // Step 4: Update with modified notes array
+    const updated = await tx.chatSession.update({
+      where: { id: sessionId },
+      data: { internalNotes: JSON.stringify(notes) },
+    });
+
+    return updated;
+  });
+}
+
+/**
  * Create new chat session
  * POST /api/chat/session
  */
@@ -148,37 +366,37 @@ export const sendUserMessage = async (req, res) => {
       });
     }
 
-    // Parse messages
-    const messages = JSON.parse(session.messages || '[]');
-
-    // Add user message
-    const userMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
-    messages.push(userMessage);
-
-    // Update session (P13: increment unread count if WITH_OPERATOR)
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        messages: JSON.stringify(messages),
-        lastMessageAt: new Date(),
-        ...(session.status === 'WITH_OPERATOR' && session.operatorId
-          ? { unreadMessageCount: { increment: 1 } }
-          : {}),
-      },
-    });
-
-    // If status is WITH_OPERATOR, forward to operator via WebSocket
+    // If status is WITH_OPERATOR, add user message and forward to operator
     if (session.status === 'WITH_OPERATOR' && session.operatorId) {
+      // BUG #6: Create message in Message table with transaction
+      const result = await createMessage(sessionId, {
+        type: 'USER',
+        content: message,
+      }, {
+        unreadMessageCount: { increment: 1 },
+      });
+
+      // Convert to legacy format for Socket.IO
+      const userMessage = {
+        id: result.message.id,
+        type: 'user',
+        content: result.message.content,
+        timestamp: result.message.createdAt.toISOString(),
+      };
+
+      // Emit to operator's personal room
       io.to(`operator_${session.operatorId}`).emit('user_message', {
         sessionId: sessionId,
         userName: session.userName,
         message: userMessage,
-        unreadCount: session.unreadMessageCount + 1,  // P13: send unread count
+        unreadCount: session.unreadMessageCount + 1,
+      });
+
+      // Also emit to chat room (for dashboard ChatWindow)
+      io.to(`chat_${sessionId}`).emit('user_message', {
+        sessionId: sessionId,
+        userName: session.userName,
+        message: userMessage,
       });
 
       return res.json({
@@ -193,27 +411,63 @@ export const sendUserMessage = async (req, res) => {
     }
 
     // Otherwise, generate AI response
-    const aiResult = await generateAIResponse(message, messages);
-
-    const aiMessage = {
-      id: (Date.now() + 1).toString(),
-      type: 'ai',
-      content: aiResult.message,
-      timestamp: new Date().toISOString(),
-      confidence: aiResult.confidence,
-      suggestOperator: aiResult.suggestOperator,
-    };
-
-    messages.push(aiMessage);
-
-    // Update session with AI response
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        messages: JSON.stringify(messages),
-        lastMessageAt: new Date(),
+    // BUG #6: Read messages from Message table instead of JSON
+    // AUDIT FIX: Limit to last 50 messages for AI context (performance optimization)
+    const existingMessages = await prisma.message.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        type: true,
+        content: true,
+        aiConfidence: true,
+        aiSuggestOperator: true,
       },
     });
+
+    // Reverse to chronological order for AI service
+    existingMessages.reverse();
+
+    // Convert to legacy format for AI service
+    const messagesForAI = existingMessages.map(m => ({
+      type: m.type.toLowerCase(),
+      content: m.content,
+      confidence: m.aiConfidence,
+      suggestOperator: m.aiSuggestOperator,
+    }));
+
+    const aiResult = await generateAIResponse(message, messagesForAI);
+
+    // BUG #6: Create both user and AI messages in single transaction
+    const result = await createMessages(sessionId, [
+      {
+        type: 'USER',
+        content: message,
+      },
+      {
+        type: 'AI',
+        content: aiResult.message,
+        aiConfidence: aiResult.confidence,
+        aiSuggestOperator: aiResult.suggestOperator,
+      },
+    ]);
+
+    // Convert to legacy format for response
+    const userMessage = {
+      id: result.messages[0].id,
+      type: 'user',
+      content: result.messages[0].content,
+      timestamp: result.messages[0].createdAt.toISOString(),
+    };
+
+    const aiMessage = {
+      id: result.messages[1].id,
+      type: 'ai',
+      content: result.messages[1].content,
+      timestamp: result.messages[1].createdAt.toISOString(),
+      confidence: result.messages[1].aiConfidence,
+      suggestOperator: result.messages[1].aiSuggestOperator,
+    };
 
     res.json({
       success: true,
@@ -271,242 +525,60 @@ export const requestOperator = async (req, res) => {
       });
     }
 
-    // Update session to WAITING status (not WITH_OPERATOR yet)
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        status: 'WAITING',  // User is waiting for operator to accept
-        lastMessageAt: new Date(),
-      },
+    // Assign to least busy operator
+    const assignedOperator = availableOperators[0];
+
+    // BUG #6: Create system message in Message table with transaction
+    await createMessage(sessionId, {
+      type: 'SYSTEM',
+      content: `${assignedOperator.name} si è unito alla chat`,
+    }, {
+      status: 'WITH_OPERATOR',
+      operatorId: assignedOperator.id,
     });
 
-    // Notify ALL available operators about the pending request
-    const messages = JSON.parse(session.messages || '[]');
-    const lastUserMessage = messages.filter(m => m.type === 'user').slice(-1)[0];
+    // BUG #6: Get last user message from Message table for notification
+    const lastUserMessage = await prisma.message.findFirst({
+      where: {
+        sessionId,
+        type: 'USER',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { content: true },
+    });
 
-    // Emit to all available operators (they can see it in dashboard)
-    for (const operator of availableOperators) {
-      io.to(`operator_${operator.id}`).emit('new_chat_request', {
-        sessionId: sessionId,
-        userName: session.userName || `Utente #${sessionId.slice(0, 8)}`,
-        lastMessage: lastUserMessage?.content || '',
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Notify dashboard to show pending chat
-    io.to('dashboard').emit('chat_waiting_operator', {
+    // Notify operator via WebSocket
+    io.to(`operator_${assignedOperator.id}`).emit('new_chat_request', {
       sessionId: sessionId,
       userName: session.userName,
-      timestamp: new Date().toISOString(),
+      lastMessage: lastUserMessage?.content || '',
     });
 
-    // Notify widget that request was sent (status now WAITING)
-    io.to(`chat_${sessionId}`).emit('operator_request_sent', {
+    // Notify dashboard
+    io.to('dashboard').emit('chat_assigned', {
       sessionId: sessionId,
-      status: 'WAITING',
-      message: 'Richiesta inviata. In attesa di un operatore...',
+      operatorId: assignedOperator.id,
+    });
+
+    // Notify widget user that operator joined
+    io.to(`chat_${sessionId}`).emit('operator_assigned', {
+      sessionId: sessionId,
+      operatorName: assignedOperator.name,
+      operatorId: assignedOperator.id,
     });
 
     res.json({
       success: true,
       data: {
         operatorAvailable: true,
-        status: 'WAITING',
-        message: 'Richiesta inviata agli operatori disponibili',
-      },
-    });
-  } catch (error) {
-    console.error('Request operator error:', error);
-    res.status(500).json({
-      error: { message: 'Internal server error' },
-    });
-  }
-};
-
-/**
- * Cancel operator request
- * POST /api/chat/session/:sessionId/cancel-operator-request
- * User cancels their operator request while waiting
- */
-export const cancelOperatorRequest = async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-
-    // Get session
-    const session = await prisma.chatSession.findUnique({
-      where: { id: sessionId },
-    });
-
-    if (!session) {
-      return res.status(404).json({
-        error: { message: 'Session not found' },
-      });
-    }
-
-    // Verify session is in WAITING status
-    if (session.status !== 'WAITING') {
-      return res.status(400).json({
-        error: { message: 'Session is not waiting for operator' },
-      });
-    }
-
-    // Update session: revert to ACTIVE status
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        status: 'ACTIVE',
-        lastMessageAt: new Date(),
-      },
-    });
-
-    // Notify dashboard: remove this request from pending list
-    io.to('dashboard').emit('chat_request_cancelled', {
-      sessionId: sessionId,
-      reason: 'cancelled_by_user',
-    });
-
-    // Notify widget: request cancelled, back to AI
-    io.to(`chat_${sessionId}`).emit('operator_request_cancelled', {
-      sessionId: sessionId,
-      status: 'ACTIVE',
-      message: 'Richiesta annullata. Puoi continuare a chattare con l\'assistente AI.',
-    });
-
-    console.log(`🚫 User cancelled operator request for session ${sessionId}`);
-
-    res.json({
-      success: true,
-      data: {
-        status: 'ACTIVE',
-        message: 'Richiesta operatore annullata',
-      },
-    });
-  } catch (error) {
-    console.error('Cancel operator request error:', error);
-    res.status(500).json({
-      error: { message: 'Internal server error' },
-    });
-  }
-};
-
-/**
- * Accept operator chat request
- * POST /api/chat/sessions/:sessionId/accept-operator
- * Operator clicks "Accept" button in dashboard
- */
-export const acceptOperator = async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const { operatorId } = req.body;
-
-    if (!operatorId) {
-      return res.status(400).json({
-        error: { message: 'Operator ID is required' },
-      });
-    }
-
-    // Get session
-    const session = await prisma.chatSession.findUnique({
-      where: { id: sessionId },
-    });
-
-    if (!session) {
-      return res.status(404).json({
-        error: { message: 'Session not found' },
-      });
-    }
-
-    // Verify session is in WAITING status
-    if (session.status !== 'WAITING') {
-      return res.status(400).json({
-        error: { message: 'Session is not waiting for operator' },
-      });
-    }
-
-    // Get operator details
-    const operator = await prisma.operator.findUnique({
-      where: { id: operatorId },
-    });
-
-    if (!operator) {
-      return res.status(404).json({
-        error: { message: 'Operator not found' },
-      });
-    }
-
-    // Update session: assign operator and change status to WITH_OPERATOR
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        status: 'WITH_OPERATOR',
-        operatorId: operatorId,
-      },
-    });
-
-    // Add system message: "Operator joined"
-    const messages = JSON.parse(session.messages || '[]');
-    const systemMessage = {
-      id: Date.now().toString(),
-      type: 'system',
-      content: `${operator.name} si è unito alla chat`,
-      timestamp: new Date().toISOString(),
-    };
-    messages.push(systemMessage);
-
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        messages: JSON.stringify(messages),
-        lastMessageAt: new Date(),
-      },
-    });
-
-    // Update operator stats
-    await prisma.operator.update({
-      where: { id: operatorId },
-      data: {
-        activeChats: { increment: 1 },
-        totalChatsHandled: { increment: 1 },
-      },
-    });
-
-    // Notify widget: operator joined
-    io.to(`chat_${sessionId}`).emit('operator_joined', {
-      sessionId: sessionId,
-      operatorName: operator.name,
-      operatorId: operator.id,
-      message: systemMessage,
-    });
-
-    // Notify dashboard: chat accepted
-    io.to('dashboard').emit('chat_accepted', {
-      sessionId: sessionId,
-      operatorId: operator.id,
-      operatorName: operator.name,
-    });
-
-    // Notify OTHER operators: this chat is now taken
-    io.to('dashboard').emit('chat_request_cancelled', {
-      sessionId: sessionId,
-      reason: 'accepted_by_another_operator',
-    });
-
-    console.log(`✅ Operator ${operator.name} accepted chat ${sessionId}`);
-
-    res.json({
-      success: true,
-      data: {
-        session: {
-          id: sessionId,
-          status: 'WITH_OPERATOR',
-          operatorId: operator.id,
-          operatorName: operator.name,
+        operator: {
+          id: assignedOperator.id,
+          name: assignedOperator.name,
         },
       },
     });
   } catch (error) {
-    console.error('Accept operator error:', error);
+    console.error('Request operator error:', error);
     res.status(500).json({
       error: { message: 'Internal server error' },
     });
@@ -544,29 +616,23 @@ export const sendOperatorMessage = async (req, res) => {
       });
     }
 
-    // Parse messages
-    const messages = JSON.parse(session.messages || '[]');
-
-    // Add operator message
-    const operatorMessage = {
-      id: Date.now().toString(),
-      type: 'operator',
+    // BUG #6: Create operator message in Message table with transaction
+    const result = await createMessage(sessionId, {
+      type: 'OPERATOR',
       content: message,
-      timestamp: new Date().toISOString(),
       operatorId: operatorId || session.operatorId,
       operatorName: session.operator?.name || 'Operatore',
-    };
-
-    messages.push(operatorMessage);
-
-    // Update session
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        messages: JSON.stringify(messages),
-        lastMessageAt: new Date(),
-      },
     });
+
+    // Convert to legacy format for Socket.IO
+    const operatorMessage = {
+      id: result.message.id,
+      type: 'operator',
+      content: result.message.content,
+      timestamp: result.message.createdAt.toISOString(),
+      operatorId: result.message.operatorId,
+      operatorName: result.message.operatorName,
+    };
 
     // Emit to user via Socket.IO
     io.to(`chat_${sessionId}`).emit('operator_message', {
@@ -607,27 +673,31 @@ export const closeSession = async (req, res) => {
       });
     }
 
-    // Parse existing messages
-    const messages = JSON.parse(session.messages || '[]');
+    // AUDIT FIX: Check if already closed (idempotency)
+    if (session.status === 'CLOSED') {
+      return res.status(400).json({
+        error: { message: 'Chat is already closed' },
+      });
+    }
 
-    // Add system closing message
-    const closingMessage = {
-      id: Date.now().toString(),
-      type: 'system',
+    // BUG #6: Create system closing message in Message table with transaction
+    const result = await createMessage(sessionId, {
+      type: 'SYSTEM',
       content: 'La chat è stata chiusa dall\'operatore. Grazie per averci contattato!',
-      timestamp: new Date().toISOString(),
-    };
-    messages.push(closingMessage);
-
-    // Update session with closing message
-    const updatedSession = await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        status: 'CLOSED',
-        closedAt: new Date(),
-        messages: JSON.stringify(messages),
-      },
+    }, {
+      status: 'CLOSED',
+      closedAt: new Date(),
     });
+
+    const updatedSession = result.session;
+
+    // Convert to legacy format for Socket.IO events
+    const closingMessage = {
+      id: result.message.id,
+      type: 'system',
+      content: result.message.content,
+      timestamp: result.message.createdAt.toISOString(),
+    };
 
     // P0.4: Send chat transcript email if user provided email
     if (updatedSession.userEmail) {
@@ -651,13 +721,13 @@ export const closeSession = async (req, res) => {
     }
 
     // Notify via WebSocket with the closing message
-    io.to(`chat:${sessionId}`).emit('chat_closed', {
+    io.to(`chat_${sessionId}`).emit('chat_closed', {
       sessionId: sessionId,
       message: closingMessage,
     });
 
     // Also emit new message event for the widget
-    io.to(`chat:${sessionId}`).emit('new_message', closingMessage);
+    io.to(`chat_${sessionId}`).emit('new_message', closingMessage);
 
     res.json({
       success: true,
@@ -700,10 +770,15 @@ export const getSessions = async (req, res) => {
     }
 
     // Search in userName or messages
+    // AUDIT FIX: Search in Message table instead of old JSON field
     if (search) {
       where.OR = [
         { userName: { contains: search, mode: 'insensitive' } },
-        { messages: { string_contains: search } }, // Search in JSON
+        { messagesNew: {
+          some: {
+            content: { contains: search, mode: 'insensitive' }
+          }
+        }},
       ];
     }
 
@@ -723,14 +798,58 @@ export const getSessions = async (req, res) => {
             name: true,
           },
         },
+        // BUG #6: Include messages from Message table
+        messagesNew: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            type: true,
+            content: true,
+            operatorId: true,
+            operatorName: true,
+            aiConfidence: true,
+            aiSuggestOperator: true,
+            attachmentUrl: true,
+            attachmentPublicId: true,
+            attachmentName: true,
+            attachmentMimetype: true,
+            attachmentResourceType: true,
+            attachmentSize: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { lastMessageAt: 'desc' },
       take: parseInt(limit),
     });
 
+    // BUG #6: Convert messagesNew to legacy format for frontend compatibility
+    const sessionsWithMessages = sessions.map((session) => ({
+      ...session,
+      messages: session.messagesNew.map(msg => ({
+        id: msg.id,
+        type: msg.type.toLowerCase(),
+        content: msg.content,
+        timestamp: msg.createdAt.toISOString(),
+        ...(msg.operatorId && { operatorId: msg.operatorId, operatorName: msg.operatorName }),
+        ...(msg.aiConfidence !== null && { confidence: msg.aiConfidence, suggestOperator: msg.aiSuggestOperator }),
+        ...(msg.attachmentUrl && {
+          attachment: {
+            url: msg.attachmentUrl,
+            publicId: msg.attachmentPublicId,
+            originalName: msg.attachmentName,
+            mimetype: msg.attachmentMimetype,
+            resourceType: msg.attachmentResourceType,
+            size: msg.attachmentSize,
+          },
+        }),
+      })),
+      messagesNew: undefined, // Remove from response
+    }));
+
     res.json({
       success: true,
-      data: sessions,
+      data: sessionsWithMessages,
     });
   } catch (error) {
     console.error('Get sessions error:', error);
@@ -949,29 +1068,23 @@ export const transferSession = async (req, res) => {
       });
     }
 
-    if (!targetOperator.isOnline || !targetOperator.isAvailable) {
+    if (!targetOperator.isAvailable) {
       return res.status(400).json({
         error: { message: 'Target operator is not available' },
       });
     }
 
-    // Parse messages and add system message
-    const messages = JSON.parse(session.messages || '[]');
-    const transferMessage = {
-      id: Date.now().toString(),
-      type: 'system',
+    // BUG #6: Create transfer system message in Message table with transaction
+    await createMessage(sessionId, {
+      type: 'SYSTEM',
       content: `Chat trasferita da ${session.operator?.name || 'operatore'} a ${targetOperator.name}${reason ? `. Motivo: ${reason}` : ''}`,
-      timestamp: new Date().toISOString(),
-    };
-    messages.push(transferMessage);
+    }, {
+      operatorId: toOperatorId,
+    });
 
-    // Update session
-    const updatedSession = await prisma.chatSession.update({
+    // Fetch updated session with new operator details for response
+    const updatedSession = await prisma.chatSession.findUnique({
       where: { id: sessionId },
-      data: {
-        operatorId: toOperatorId,
-        messages: JSON.stringify(messages),
-      },
       include: {
         operator: {
           select: { id: true, name: true },
@@ -980,13 +1093,13 @@ export const transferSession = async (req, res) => {
     });
 
     // Notify both operators via WebSocket
-    io.to(`operator:${session.operatorId}`).emit('chat_transferred_from_you', {
+    io.to(`operator_${session.operatorId}`).emit('chat_transferred_from_you', {
       sessionId,
       toOperator: targetOperator,
       reason,
     });
 
-    io.to(`operator:${toOperatorId}`).emit('chat_transferred_to_you', {
+    io.to(`operator_${toOperatorId}`).emit('chat_transferred_to_you', {
       sessionId,
       fromOperator: session.operator,
       reason,
@@ -1175,8 +1288,7 @@ export const addInternalNote = async (req, res) => {
       });
     }
 
-    const notes = JSON.parse(session.internalNotes || '[]');
-
+    // Create new note
     const newNote = {
       id: Date.now().toString(),
       content: content.trim(),
@@ -1185,12 +1297,8 @@ export const addInternalNote = async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    notes.push(newNote);
-
-    const updated = await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: { internalNotes: JSON.stringify(notes) },
-    });
+    // BUG #5 FIX: Use transaction-based helper to prevent race conditions
+    const updated = await addInternalNoteWithLock(sessionId, newNote);
 
     console.log(`✅ P0.3: Internal note added to chat ${sessionId} by ${req.operator.name}`);
 
@@ -1232,35 +1340,35 @@ export const updateInternalNote = async (req, res) => {
       });
     }
 
+    // Verify note exists and check permissions BEFORE transaction
     const notes = JSON.parse(session.internalNotes || '[]');
-    const noteIndex = notes.findIndex((n) => n.id === noteId);
+    const noteToUpdate = notes.find((n) => n.id === noteId);
 
-    if (noteIndex === -1) {
+    if (!noteToUpdate) {
       return res.status(404).json({
         error: { message: 'Note not found' },
       });
     }
 
     // Only allow operator to edit their own notes
-    if (notes[noteIndex].operatorId !== req.operator.id) {
+    if (noteToUpdate.operatorId !== req.operator.id) {
       return res.status(403).json({
         error: { message: 'You can only edit your own notes' },
       });
     }
 
-    notes[noteIndex].content = content.trim();
-    notes[noteIndex].updatedAt = new Date().toISOString();
+    // BUG #5 FIX: Use transaction-based helper to prevent race conditions
+    const updated = await updateInternalNoteWithLock(sessionId, noteId, content.trim());
 
-    const updated = await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: { internalNotes: JSON.stringify(notes) },
-    });
+    // Get the updated note from the result
+    const updatedNotes = JSON.parse(updated.internalNotes || '[]');
+    const updatedNote = updatedNotes.find((n) => n.id === noteId);
 
     console.log(`✅ P0.3: Internal note ${noteId} updated in chat ${sessionId}`);
 
     res.json({
       success: true,
-      data: { note: notes[noteIndex], session: updated },
+      data: { note: updatedNote, session: updated },
       message: 'Internal note updated successfully',
     });
   } catch (error) {
@@ -1274,6 +1382,7 @@ export const updateInternalNote = async (req, res) => {
 /**
  * P0.3: Delete internal note
  * DELETE /api/chat/sessions/:sessionId/notes/:noteId
+ * AUDIT FIX: Now uses transaction lock to prevent race conditions
  */
 export const deleteInternalNote = async (req, res) => {
   try {
@@ -1289,28 +1398,25 @@ export const deleteInternalNote = async (req, res) => {
       });
     }
 
+    // Verify note exists and check permissions BEFORE transaction
     const notes = JSON.parse(session.internalNotes || '[]');
-    const noteIndex = notes.findIndex((n) => n.id === noteId);
+    const noteToDelete = notes.find((n) => n.id === noteId);
 
-    if (noteIndex === -1) {
+    if (!noteToDelete) {
       return res.status(404).json({
         error: { message: 'Note not found' },
       });
     }
 
     // Only allow operator to delete their own notes
-    if (notes[noteIndex].operatorId !== req.operator.id) {
+    if (noteToDelete.operatorId !== req.operator.id) {
       return res.status(403).json({
         error: { message: 'You can only delete your own notes' },
       });
     }
 
-    notes.splice(noteIndex, 1);
-
-    const updated = await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: { internalNotes: JSON.stringify(notes) },
-    });
+    // AUDIT FIX: Use transaction-based helper to prevent race conditions
+    const updated = await deleteInternalNoteWithLock(sessionId, noteId);
 
     console.log(`✅ P0.3: Internal note ${noteId} deleted from chat ${sessionId}`);
 
@@ -1346,7 +1452,7 @@ export const getUserHistory = async (req, res) => {
       });
     }
 
-    // Get all chat sessions for this user
+    // BUG #6: Get all chat sessions for this user with messages from Message table
     const sessions = await prisma.chatSession.findMany({
       where: { userId: userId },
       orderBy: { createdAt: 'desc' },
@@ -1362,18 +1468,55 @@ export const getUserHistory = async (req, res) => {
             name: true,
           },
         },
-        messages: true,
+        messagesNew: {
+          orderBy: { createdAt: 'asc' },
+          take: 100, // AUDIT FIX: Limit messages per session to prevent memory overflow
+          select: {
+            id: true,
+            type: true,
+            content: true,
+            operatorId: true,
+            operatorName: true,
+            aiConfidence: true,
+            aiSuggestOperator: true,
+            attachmentUrl: true,
+            attachmentPublicId: true,
+            attachmentName: true,
+            attachmentMimetype: true,
+            attachmentResourceType: true,
+            attachmentSize: true,
+            createdAt: true,
+          },
+        },
         priority: true,
         tags: true,
         aiConfidence: true,
       },
     });
 
-    // Parse messages for each session
+    // BUG #6: Convert messages to legacy format
     const sessionsWithParsedMessages = sessions.map((session) => ({
       ...session,
-      messages: JSON.parse(session.messages || '[]'),
-      messageCount: JSON.parse(session.messages || '[]').length,
+      messages: session.messagesNew.map(msg => ({
+        id: msg.id,
+        type: msg.type.toLowerCase(),
+        content: msg.content,
+        timestamp: msg.createdAt.toISOString(),
+        ...(msg.operatorId && { operatorId: msg.operatorId, operatorName: msg.operatorName }),
+        ...(msg.aiConfidence !== null && { confidence: msg.aiConfidence, suggestOperator: msg.aiSuggestOperator }),
+        ...(msg.attachmentUrl && {
+          attachment: {
+            url: msg.attachmentUrl,
+            publicId: msg.attachmentPublicId,
+            originalName: msg.attachmentName,
+            mimetype: msg.attachmentMimetype,
+            resourceType: msg.attachmentResourceType,
+            size: msg.attachmentSize,
+          },
+        }),
+      })),
+      messageCount: session.messagesNew.length,
+      messagesNew: undefined, // Remove messagesNew from response
     }));
 
     console.log(`✅ P0.2: User history loaded for ${user.email || userId} (${sessions.length} sessions)`);
@@ -1417,6 +1560,37 @@ export const uploadFile = async (req, res) => {
       });
     }
 
+    // AUDIT FIX: Validate file MIME type (security)
+    const ALLOWED_MIMETYPES = [
+      // Images
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      // Documents
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      // Text
+      'text/plain',
+      'text/csv',
+      // Archives
+      'application/zip',
+      'application/x-zip-compressed',
+    ];
+
+    if (!ALLOWED_MIMETYPES.includes(file.mimetype)) {
+      return res.status(400).json({
+        error: { message: `File type not allowed: ${file.mimetype}. Allowed types: images, PDFs, documents, text files.` },
+      });
+    }
+
     // Check session exists
     const session = await prisma.chatSession.findUnique({
       where: { id: sessionId },
@@ -1435,38 +1609,43 @@ export const uploadFile = async (req, res) => {
       file.mimetype
     );
 
-    // Create message with file attachment
-    const messages = JSON.parse(session.messages || '[]');
+    // BUG #6: Create message with file attachment in Message table with transaction
     const isOperator = !!req.operator; // Check if authenticated (operator) or public (user)
 
-    const newMessage = {
-      id: Date.now().toString(),
-      type: isOperator ? 'operator' : 'user',
+    const result = await createMessage(sessionId, {
+      type: isOperator ? 'OPERATOR' : 'USER',
       content: `📎 ${file.originalname}`,
-      attachment: {
-        url: uploadResult.url,
-        publicId: uploadResult.publicId,
-        originalName: uploadResult.originalName,
-        mimetype: uploadResult.mimetype,
-        size: uploadResult.bytes,
-        resourceType: uploadResult.resourceType,
-        ...(uploadResult.width && { width: uploadResult.width }),
-        ...(uploadResult.height && { height: uploadResult.height }),
-      },
-      timestamp: new Date().toISOString(),
-      ...(isOperator && { operatorName: req.operator.name, operatorId: req.operator.id }),
-    };
-
-    messages.push(newMessage);
-
-    // Update session
-    await prisma.chatSession.update({
-      where: { id: sessionId },
-      data: {
-        messages: JSON.stringify(messages),
-        lastMessageAt: new Date(),
-      },
+      attachmentUrl: uploadResult.url,
+      attachmentPublicId: uploadResult.publicId,
+      attachmentName: uploadResult.originalName,
+      attachmentMimetype: uploadResult.mimetype,
+      attachmentSize: uploadResult.bytes,
+      attachmentResourceType: uploadResult.resourceType,
+      ...(isOperator && {
+        operatorName: req.operator.name,
+        operatorId: req.operator.id
+      }),
     });
+
+    // Convert to legacy format for Socket.IO events
+    const newMessage = {
+      id: result.message.id,
+      type: isOperator ? 'operator' : 'user',
+      content: result.message.content,
+      attachment: {
+        url: result.message.attachmentUrl,
+        publicId: result.message.attachmentPublicId,
+        originalName: result.message.attachmentName,
+        mimetype: result.message.attachmentMimetype,
+        size: result.message.attachmentSize,
+        resourceType: result.message.attachmentResourceType,
+      },
+      timestamp: result.message.createdAt.toISOString(),
+      ...(isOperator && {
+        operatorName: result.message.operatorName,
+        operatorId: result.message.operatorId
+      }),
+    };
 
     // Emit via WebSocket
     const eventName = isOperator ? 'operator_message' : 'user_message';
