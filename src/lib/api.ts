@@ -215,6 +215,16 @@ export const chatApi = {
 
   markAsRead: (id: string) =>
     api.post(`/chat/sessions/${id}/mark-read`).then(res => res.data),
+
+  // Internal Notes (P0.3)
+  addNote: (sessionId: string, content: string) =>
+    api.post(`/chat/sessions/${sessionId}/notes`, { content }).then(res => res.data),
+
+  updateNote: (sessionId: string, noteId: string, content: string) =>
+    api.put(`/chat/sessions/${sessionId}/notes/${noteId}`, { content }).then(res => res.data),
+
+  deleteNote: (sessionId: string, noteId: string) =>
+    api.delete(`/chat/sessions/${sessionId}/notes/${noteId}`).then(res => res.data),
 };
 
 // ============================================

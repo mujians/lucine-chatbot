@@ -18,6 +18,15 @@ export interface ChatMessage {
   suggestOperator?: boolean;
 }
 
+export interface InternalNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  operatorName?: string;
+}
+
 export interface ChatSession {
   id: string;
   userName: string | null;  // Backend has userName, not userId

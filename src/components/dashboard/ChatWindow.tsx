@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, Archive, Flag, XCircle, Download } from 'lucide-react';
-import type { ChatSession, ChatMessage, Operator } from '@/types';
+import { Send, X, Archive, Flag, XCircle, Download, StickyNote } from 'lucide-react';
+import type { ChatSession, ChatMessage, Operator, InternalNote } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +25,7 @@ import { chatApi, operatorsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocket } from '@/contexts/SocketContext';
 import { QuickReplyPicker } from './QuickReplyPicker';
+import { InternalNotesSidebar } from './InternalNotesSidebar';
 import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
 interface ChatWindowProps {
@@ -58,8 +59,10 @@ export function ChatWindow({
   const [showQuickReply, setShowQuickReply] = useState(false);
   const [quickReplySearch, setQuickReplySearch] = useState('');
   const [userIsTyping, setUserIsTyping] = useState(false); // Typing indicator
+  const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]); // Internal Notes
+  const [showNotes, setShowNotes] = useState(false); // Notes sidebar toggle
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce typing
+  const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
   const { operator: currentOperator } = useAuth();
   const { socket } = useSocket();
 
@@ -281,7 +284,8 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div className="flex-1 flex bg-background">
+      <div className="flex-1 flex flex-col">
       <div className="h-16 border-b bg-card px-6 flex items-center justify-between">
         <div>
           <h2 className="font-semibold">
@@ -365,6 +369,17 @@ export function ChatWindow({
               Archivia
             </Button>
           )}
+
+          {/* Internal Notes Toggle */}
+          <Button
+            variant={showNotes ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowNotes(!showNotes)}
+            title="Note interne"
+          >
+            <StickyNote className="h-4 w-4 mr-2" />
+            Note ({internalNotes.length})
+          </Button>
 
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
@@ -537,6 +552,16 @@ export function ChatWindow({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
+
+      {/* Internal Notes Sidebar */}
+      <InternalNotesSidebar
+        sessionId={selectedChat.id}
+        notes={internalNotes}
+        onNotesChange={setInternalNotes}
+        isOpen={showNotes}
+        onClose={() => setShowNotes(false)}
+      />
     </div>
   );
 }
