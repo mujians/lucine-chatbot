@@ -27,8 +27,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     newSocket.on('connect', () => {
       console.log('✅ WebSocket connected');
       setConnected(true);
-      // Join dashboard room with operator ID
-      newSocket.emit('join_dashboard', operator.id);
+      // Join dashboard room (all operators)
+      newSocket.emit('join_dashboard');
+      console.log('📊 Joined dashboard room');
     });
 
     newSocket.on('disconnect', () => {
