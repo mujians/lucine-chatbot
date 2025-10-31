@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 
 type ChatStatus = 'ACTIVE' | 'WAITING' | 'WITH_OPERATOR' | 'CLOSED' | 'TICKET_CREATED';
-type TicketStatus = 'PENDING' | 'OPEN' | 'ASSIGNED' | 'RESOLVED' | 'CLOSED';
+type TicketStatus = 'PENDING' | 'ASSIGNED' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
 type Status = ChatStatus | TicketStatus;
 
@@ -15,8 +15,9 @@ const statusConfig: Record<Status, { label: string; variant: 'default' | 'second
 
   // Ticket statuses
   PENDING: { label: 'In Attesa', variant: 'secondary' },
-  OPEN: { label: 'Aperto', variant: 'default' },
   ASSIGNED: { label: 'Assegnato', variant: 'outline' },
+  OPEN: { label: 'Aperto', variant: 'default' },
+  IN_PROGRESS: { label: 'In Lavorazione', variant: 'default' },
   RESOLVED: { label: 'Risolto', variant: 'default' },
 };
 
