@@ -219,6 +219,18 @@ export default function Index() {
       updateChatMessages(data.sessionId, systemMessage);
     });
 
+    // User disconnected
+    socket.on('user_disconnected', (data) => {
+      console.log('🔴 User disconnected:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || '🔴 L\'utente si è disconnesso',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+    });
+
     // Operator disconnected (technical issue)
     socket.on('operator_disconnected', (data) => {
       console.log('🔴 Operator disconnected:', data);
@@ -261,6 +273,7 @@ export default function Index() {
       socket.off('user_confirmed_presence');
       socket.off('user_switched_to_ai');
       socket.off('user_inactive_final');
+      socket.off('user_disconnected');
       socket.off('operator_disconnected');
       socket.off('new_ticket_created');
     };
