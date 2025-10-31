@@ -143,10 +143,13 @@ export function ChatWindow({
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    // ScrollArea uses Radix UI which has an internal viewport
+    // We need to find the actual scrollable element
+    const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
-  }, [selectedChat?.messages, selectedChat?.id]);
+  }, [selectedChat?.messages, selectedChat?.id, userIsTyping]);
 
   const loadAvailableOperators = useCallback(async () => {
     try {
