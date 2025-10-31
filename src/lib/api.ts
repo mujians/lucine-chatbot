@@ -7,14 +7,28 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // CSRF: Enable credentials (cookies) for CSRF protection
 });
 
-// Interceptor per JWT token
+// Store CSRF token (v2.2 - CSRF Protection)
+let csrfToken: string | null = null;
+
+export const setCsrfToken = (token: string | null) => {
+  csrfToken = token;
+};
+
+// Interceptor per JWT token e CSRF token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // CSRF token (v2.2 - CSRF Protection)
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
   return config;
 });
 
