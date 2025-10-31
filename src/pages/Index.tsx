@@ -100,10 +100,12 @@ export default function Index() {
 
     socket.on('operator_message', (data) => {
       console.log('👤 Operator message (echo):', data);
-      // Update chat messages when operator message is sent
-      // This ensures the operator sees their own message in the UI
-      if (data.message) {
+      // Filter out own messages to prevent duplicates (already added via optimistic UI)
+      if (data.message && data.message.operatorId !== operator?.id) {
+        // Only add messages from OTHER operators (e.g., transferred chats)
         updateChatMessages(data.sessionId, data.message);
+      } else {
+        console.log('⏭️  Skipping own operator message (already in UI via optimistic update)');
       }
     });
 
@@ -168,6 +170,69 @@ export default function Index() {
       loadChats();
     });
 
+    // User resumed chat notification
+    socket.on('user_resumed_chat', (data) => {
+      console.log('🔄 User resumed chat:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || `${data.userName} ha ripreso la conversazione`,
+        sender: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+    });
+
+    // User confirmed presence (clicked "Yes I'm here")
+    socket.on('user_confirmed_presence', (data) => {
+      console.log('✅ User confirmed presence:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || "✅ L'utente ha confermato la sua presenza",
+        sender: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+    });
+
+    // User switched to AI (clicked "Continue with AI")
+    socket.on('user_switched_to_ai', (data) => {
+      console.log('🤖 User switched to AI:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || "🤖 L'utente è tornato all'assistente AI",
+        sender: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+    });
+
+    // User inactive for 5 minutes
+    socket.on('user_inactive_final', (data) => {
+      console.log('⚠️ User inactive:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || '⚠️ Utente inattivo da 5 minuti',
+        sender: 'system' as const,
+        timestamp: new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+    });
+
+    // Operator disconnected (technical issue)
+    socket.on('operator_disconnected', (data) => {
+      console.log('🔴 Operator disconnected:', data);
+      // This event is for users, but if operator sees it, show notification
+      if (selectedChat?.id === data.sessionId) {
+        const systemMessage = {
+          id: `system-${Date.now()}`,
+          content: data.message || "L'operatore non è più disponibile",
+          sender: 'system' as const,
+          timestamp: data.timestamp || new Date().toISOString(),
+        };
+        updateChatMessages(data.sessionId, systemMessage);
+      }
+    });
+
     return () => {
       socket.off('new_chat_request');
       socket.off('user_message');
@@ -178,6 +243,11 @@ export default function Index() {
       socket.off('chat_accepted');
       socket.off('chat_request_cancelled');
       socket.off('operator_joined');
+      socket.off('user_resumed_chat');
+      socket.off('user_confirmed_presence');
+      socket.off('user_switched_to_ai');
+      socket.off('user_inactive_final');
+      socket.off('operator_disconnected');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
@@ -290,11 +360,24 @@ export default function Index() {
     if (!selectedChat || !operator) return;
 
     try {
+      // Optimistic UI: Add message immediately to local state
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        content: message,
+        sender: 'operator' as const,
+        operatorId: operator.id,
+        operatorName: operator.name,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Add to UI immediately for better UX
+      updateChatMessages(selectedChat.id, optimisticMessage);
+
       // Call REST API to send message (saves to DB + emits WebSocket)
       await chatApi.sendOperatorMessage(selectedChat.id, message, operator.id);
 
       console.log('✅ Operator message sent via API');
-      // Message will be added to UI via WebSocket 'operator_message' event automatically
+      // WebSocket 'operator_message' event will be filtered (skip own messages)
     } catch (error: any) {
       console.error('Failed to send operator message:', error);
       alert(error.response?.data?.error?.message || 'Errore durante l\'invio del messaggio');
