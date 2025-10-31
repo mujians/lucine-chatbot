@@ -92,8 +92,9 @@ export interface User {
 
 export const TicketStatus = {
   PENDING: 'PENDING',
-  OPEN: 'OPEN',
   ASSIGNED: 'ASSIGNED',
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
   RESOLVED: 'RESOLVED',
   CLOSED: 'CLOSED',
 } as const;
