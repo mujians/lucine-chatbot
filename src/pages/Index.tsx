@@ -450,6 +450,12 @@ export default function Index() {
       // Automatically select and open the chat after accepting
       setSelectedChat(chat);
 
+      // IMPORTANT: Join the chat room to receive messages
+      if (socket) {
+        socket.emit('join_chat', { sessionId: chat.id });
+        console.log(`📤 Operator joined chat room: ${chat.id}`);
+      }
+
       loadChats();
     } catch (error: any) {
       console.error('Failed to accept chat:', error);
