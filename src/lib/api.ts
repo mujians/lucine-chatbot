@@ -261,6 +261,13 @@ export const chatApi = {
   // User History (P0.2)
   getUserHistory: (userId: string) =>
     api.get(`/chat/users/${userId}/history`).then(res => res.data),
+
+  // ISSUE #10: AI Chat Monitoring
+  getActiveSessions: () =>
+    api.get('/chat/sessions/active').then(res => res.data),
+
+  operatorIntervene: (sessionId: string, operatorId: string) =>
+    api.post(`/chat/sessions/${sessionId}/operator-intervene`, { operatorId }).then(res => res.data),
 };
 
 // ============================================

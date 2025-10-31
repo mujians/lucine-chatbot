@@ -6,7 +6,7 @@ import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Archive, Flag, Download } from 'lucide-react';
+import { Search, X, Archive, Flag, Download, Bot, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,8 @@ export default function Index() {
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [newTicketCount, setNewTicketCount] = useState(0);
+  const [activeAIChats, setActiveAIChats] = useState<any[]>([]);
+  const [showAIChats, setShowAIChats] = useState(false);
 
   const { socket, connected } = useSocket();
   const { operator, logout } = useAuth();
@@ -45,6 +47,13 @@ export default function Index() {
   useEffect(() => {
     loadChats();
   }, [searchQuery, showArchived, showOnlyFlagged]);
+
+  // ISSUE #10: Load active AI chats periodically
+  useEffect(() => {
+    loadActiveAIChats();
+    const interval = setInterval(loadActiveAIChats, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   // Join operator room when socket connects
   useEffect(() => {
@@ -259,6 +268,71 @@ export default function Index() {
       );
     });
 
+    // ISSUE #12: Operator timeout notification
+    socket.on('chat_timeout_cancelled', (data) => {
+      console.log('⏱️ Chat timeout cancelled:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || 'Questa chat è stata cancellata perché non hai risposto in tempo.',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+      loadChats(); // Refresh chat list
+    });
+
+    // ISSUE #13: Chat auto-closed after user disconnect
+    socket.on('chat_auto_closed', (data) => {
+      console.log('🔒 Chat auto-closed:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || 'Chat chiusa automaticamente',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+      loadChats(); // Refresh chat list
+    });
+
+    // ISSUE #14: Chat reopened by user
+    socket.on('chat_reopened', (data) => {
+      console.log('🔄 Chat reopened:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || 'L\'utente ha riaperto la chat',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+      loadChats(); // Refresh chat list
+    });
+
+    // ISSUE #10: AI chat intervened
+    socket.on('ai_chat_intervened', (data) => {
+      console.log('👤 AI chat intervened:', data);
+      loadActiveAIChats(); // Refresh AI chats list
+      loadChats(); // Refresh main chat list
+    });
+
+    // Spam Detection: User spam detected
+    socket.on('user_spam_detected', (data) => {
+      console.log('🚨 User spam detected:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || `Possibile spam: ${data.messageCount} messaggi nell'ultimo minuto`,
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+
+      // Show notification
+      notificationService.notifyNewMessage(
+        data.sessionId,
+        data.userName || 'Utente',
+        `⚠️ Possibile spam da ${data.userName}`
+      );
+    });
+
     return () => {
       socket.off('new_chat_request');
       socket.off('user_message');
@@ -276,6 +350,11 @@ export default function Index() {
       socket.off('user_disconnected');
       socket.off('operator_disconnected');
       socket.off('new_ticket_created');
+      socket.off('chat_timeout_cancelled');
+      socket.off('chat_auto_closed');
+      socket.off('chat_reopened');
+      socket.off('ai_chat_intervened');
+      socket.off('user_spam_detected');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
@@ -319,6 +398,19 @@ export default function Index() {
       console.error('❌ Failed to load chats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ISSUE #10: Load active AI chats for monitoring
+  const loadActiveAIChats = async () => {
+    try {
+      const response = await chatApi.getActiveSessions();
+      const sessionsData = response.data || response;
+      setActiveAIChats(sessionsData || []);
+      console.log(`🤖 Loaded ${sessionsData?.length || 0} active AI chats`);
+    } catch (error) {
+      console.error('❌ Failed to load active AI chats:', error);
+      setActiveAIChats([]);
     }
   };
 
@@ -488,6 +580,52 @@ export default function Index() {
     } catch (error: any) {
       console.error('Failed to accept chat:', error);
       alert(error.response?.data?.error?.message || 'Errore durante l\'accettazione della chat');
+    }
+  };
+
+  // ISSUE #10: Intervene in active AI chat
+  const handleIntervene = async (sessionId: string) => {
+    if (!operator) return;
+
+    try {
+      console.log(`👤 Operator ${operator.id} intervening in AI chat ${sessionId}`);
+      const response = await chatApi.operatorIntervene(sessionId, operator.id);
+
+      // Join the chat room
+      if (socket) {
+        socket.emit('join_chat', { sessionId });
+        console.log(`📤 Operator joined AI chat room: ${sessionId}`);
+      }
+
+      // Refresh lists
+      await loadActiveAIChats();
+      await loadChats();
+
+      // Open the chat
+      if (response.data?.session) {
+        // Parse messages if needed
+        let messages = [];
+        if (typeof response.data.session.messages === 'string') {
+          try {
+            messages = JSON.parse(response.data.session.messages);
+          } catch (e) {
+            console.error('Failed to parse messages:', e);
+          }
+        } else if (Array.isArray(response.data.session.messages)) {
+          messages = response.data.session.messages;
+        }
+
+        setSelectedChat({
+          ...response.data.session,
+          messages,
+          lastMessage: messages.length > 0 ? messages[messages.length - 1] : undefined,
+        });
+      }
+
+      console.log(`✅ Successfully intervened in AI chat ${sessionId}`);
+    } catch (error: any) {
+      console.error('Failed to intervene in AI chat:', error);
+      alert(error.response?.data?.error?.message || 'Errore durante l\'intervento');
     }
   };
 
@@ -677,6 +815,58 @@ export default function Index() {
             </div>
 
             <p className="text-sm text-muted-foreground">{chats.length} chat</p>
+
+            {/* ISSUE #10: Active AI Chats Section */}
+            {activeAIChats.length > 0 && (
+              <div className="mt-3 pt-3 border-t">
+                <button
+                  onClick={() => setShowAIChats(!showAIChats)}
+                  className="w-full flex items-center justify-between text-sm font-medium hover:opacity-80 transition-opacity"
+                >
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    <span>Chat AI Attive</span>
+                    <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {activeAIChats.length}
+                    </span>
+                  </div>
+                  {showAIChats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+
+                {showAIChats && (
+                  <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+                    {activeAIChats.map((aiChat) => (
+                      <div
+                        key={aiChat.id}
+                        className="p-2 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {aiChat.userName || 'Utente'}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {aiChat.lastMessage?.content || 'Nessun messaggio'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {aiChat.messageCount} messaggi
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleIntervene(aiChat.id)}
+                            className="shrink-0 text-xs"
+                          >
+                            Intervieni
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Bulk actions bar */}
