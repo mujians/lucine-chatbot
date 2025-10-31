@@ -176,7 +176,7 @@ export default function Index() {
       const systemMessage = {
         id: `system-${Date.now()}`,
         content: data.message || `${data.userName} ha ripreso la conversazione`,
-        sender: 'system' as const,
+        type: 'system' as const,  // Changed from 'sender' to 'type'
         timestamp: data.timestamp || new Date().toISOString(),
       };
       updateChatMessages(data.sessionId, systemMessage);
@@ -188,7 +188,7 @@ export default function Index() {
       const systemMessage = {
         id: `system-${Date.now()}`,
         content: data.message || "✅ L'utente ha confermato la sua presenza",
-        sender: 'system' as const,
+        type: 'system' as const,  // Changed from 'sender' to 'type'
         timestamp: data.timestamp || new Date().toISOString(),
       };
       updateChatMessages(data.sessionId, systemMessage);
@@ -200,7 +200,7 @@ export default function Index() {
       const systemMessage = {
         id: `system-${Date.now()}`,
         content: data.message || "🤖 L'utente è tornato all'assistente AI",
-        sender: 'system' as const,
+        type: 'system' as const,  // Changed from 'sender' to 'type'
         timestamp: data.timestamp || new Date().toISOString(),
       };
       updateChatMessages(data.sessionId, systemMessage);
@@ -212,7 +212,7 @@ export default function Index() {
       const systemMessage = {
         id: `system-${Date.now()}`,
         content: data.message || '⚠️ Utente inattivo da 5 minuti',
-        sender: 'system' as const,
+        type: 'system' as const,  // Changed from 'sender' to 'type'
         timestamp: new Date().toISOString(),
       };
       updateChatMessages(data.sessionId, systemMessage);
@@ -226,7 +226,7 @@ export default function Index() {
         const systemMessage = {
           id: `system-${Date.now()}`,
           content: data.message || "L'operatore non è più disponibile",
-          sender: 'system' as const,
+          type: 'system' as const,  // Changed from 'sender' to 'type'
           timestamp: data.timestamp || new Date().toISOString(),
         };
         updateChatMessages(data.sessionId, systemMessage);
@@ -364,7 +364,7 @@ export default function Index() {
       const optimisticMessage = {
         id: `temp-${Date.now()}`,
         content: message,
-        sender: 'operator' as const,
+        type: 'operator' as const,  // Changed from 'sender' to 'type' to match ChatMessage interface
         operatorId: operator.id,
         operatorName: operator.name,
         timestamp: new Date().toISOString(),
