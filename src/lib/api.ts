@@ -50,6 +50,9 @@ export const ticketsApi = {
   update: (id: string, data: { priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' }) =>
     api.patch(`/tickets/${id}`, data).then(res => res.data),
 
+  updateStatus: (id: string, data: { status: string; notes?: string }) =>
+    api.patch(`/tickets/${id}/status`, data).then(res => res.data),
+
   create: (data: {
     sessionId: string;
     userName: string;

@@ -4,6 +4,7 @@ import { SocketProvider } from '@/contexts/SocketContext';
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
 import Tickets from '@/pages/Tickets';
+import TicketDetail from '@/pages/TicketDetail';
 import Knowledge from '@/pages/Knowledge';
 import Settings from '@/pages/Settings';
 import Operators from '@/pages/Operators';
@@ -52,6 +53,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Tickets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tickets/:ticketId"
+        element={
+          <ProtectedRoute>
+            <TicketDetail />
           </ProtectedRoute>
         }
       />
