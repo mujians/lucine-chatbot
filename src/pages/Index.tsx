@@ -30,6 +30,7 @@ export default function Index() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [newTicketCount, setNewTicketCount] = useState(0);
 
   const { socket, connected } = useSocket();
   const { operator, logout } = useAuth();
@@ -233,6 +234,19 @@ export default function Index() {
       }
     });
 
+    // New ticket created notification
+    socket.on('new_ticket_created', (data) => {
+      console.log('🎫 New ticket created:', data);
+      setNewTicketCount(prev => prev + 1);
+
+      // Show notification
+      notificationService.notifyNewMessage(
+        data.ticketId,
+        data.userName || 'Utente',
+        `Nuovo ticket da ${data.userName || 'Utente'}`
+      );
+    });
+
     return () => {
       socket.off('new_chat_request');
       socket.off('user_message');
@@ -248,6 +262,7 @@ export default function Index() {
       socket.off('user_switched_to_ai');
       socket.off('user_inactive_final');
       socket.off('operator_disconnected');
+      socket.off('new_ticket_created');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
@@ -600,7 +615,7 @@ export default function Index() {
         unreadCount={unreadCount}
       />
       <div className="flex flex-1 overflow-hidden">
-        <OperatorSidebar />
+        <OperatorSidebar ticketCount={newTicketCount} />
 
         {/* Search & Filters Panel */}
         <div className="w-80 border-r bg-card flex flex-col">
