@@ -50,7 +50,7 @@ export function OperatorSidebar({ ticketCount = 0, chatCount = 0 }: OperatorSide
             <Icon className="h-5 w-5" />
             {hasBadge && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                {item.badge > 99 ? '99+' : item.badge}
+                {item.badge! > 99 ? '99+' : item.badge}
               </span>
             )}
           </Link>
