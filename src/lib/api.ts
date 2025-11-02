@@ -176,6 +176,10 @@ export const settingsApi = {
   upsert: (key: string, value: any) =>
     api.post('/settings', { key, value }).then(res => res.data),
 
+  // v2.3: Bulk update for efficient settings save
+  bulkUpdate: (settings: Array<{ key: string; value: any; description?: string; category?: string }>) =>
+    api.post('/settings/bulk', { settings }).then(res => res.data),
+
   delete: (key: string) =>
     api.delete(`/settings/${key}`).then(res => res.data),
 

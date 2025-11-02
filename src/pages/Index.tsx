@@ -48,11 +48,9 @@ export default function Index() {
     loadChats();
   }, [searchQuery, showArchived, showOnlyFlagged]);
 
-  // ISSUE #10: Load active AI chats periodically
+  // ISSUE #10: Load active AI chats on mount
   useEffect(() => {
     loadActiveAIChats();
-    const interval = setInterval(loadActiveAIChats, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
   }, []);
 
   // Join operator room when socket connects
@@ -314,6 +312,34 @@ export default function Index() {
       loadChats(); // Refresh main chat list
     });
 
+    // v2.3: AI chat updated (real-time instead of polling)
+    socket.on('ai_chat_updated', (data) => {
+      console.log('🤖 AI chat updated:', data);
+      setActiveAIChats(prev => {
+        const index = prev.findIndex(chat => chat.id === data.sessionId);
+        const updatedChat = {
+          id: data.sessionId,
+          userName: data.userName,
+          updatedAt: data.timestamp,
+          lastMessage: {
+            content: data.lastMessage,
+            timestamp: data.timestamp
+          },
+          messageCount: data.messageCount,
+        };
+
+        if (index >= 0) {
+          // Update existing chat
+          const updated = [...prev];
+          updated[index] = updatedChat;
+          return updated;
+        } else {
+          // Add new AI chat
+          return [...prev, updatedChat];
+        }
+      });
+    });
+
     // Spam Detection: User spam detected
     socket.on('user_spam_detected', (data) => {
       console.log('🚨 User spam detected:', data);
@@ -354,6 +380,7 @@ export default function Index() {
       socket.off('chat_auto_closed');
       socket.off('chat_reopened');
       socket.off('ai_chat_intervened');
+      socket.off('ai_chat_updated');
       socket.off('user_spam_detected');
     };
   }, [socket, selectedChat, unreadCount, operator]);
