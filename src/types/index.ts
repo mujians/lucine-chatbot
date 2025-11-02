@@ -66,7 +66,7 @@ export interface Operator {
   id: string;
   name: string;
   email: string;
-  role: 'OPERATOR' | 'ADMIN';
+  role: 'ADMIN' | 'OPERATOR' | 'VIEWER';
   isOnline: boolean;       // Connected to dashboard
   isAvailable: boolean;    // Available to receive new chats
   whatsappNumber?: string;
