@@ -359,6 +359,30 @@ export default function Index() {
       );
     });
 
+    // v2.3.3: User name captured from message
+    socket.on('user_name_captured', (data) => {
+      console.log('📝 User name captured:', data);
+
+      // Update chat userName in the list
+      setChats(prev => prev.map(chat =>
+        chat.id === data.sessionId
+          ? { ...chat, userName: data.userName }
+          : chat
+      ));
+
+      // Update selected chat if it's the current one
+      if (selectedChat?.id === data.sessionId) {
+        setSelectedChat(prev => prev ? { ...prev, userName: data.userName } : null);
+      }
+
+      // Update AI chats if it's there
+      setActiveAIChats(prev => prev.map(chat =>
+        chat.id === data.sessionId
+          ? { ...chat, userName: data.userName }
+          : chat
+      ));
+    });
+
     return () => {
       socket.off('new_chat_request');
       socket.off('user_message');
@@ -382,6 +406,7 @@ export default function Index() {
       socket.off('ai_chat_intervened');
       socket.off('ai_chat_updated');
       socket.off('user_spam_detected');
+      socket.off('user_name_captured');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
