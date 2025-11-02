@@ -85,16 +85,14 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
               <div
                 key={chat.id}
                 className={cn(
-                  "relative group rounded-lg mb-2 transition-all border-2 border-l-4",
+                  "relative group rounded-lg mb-2 transition-all border",
                   selectedChatId === chat.id
                     ? "bg-accent border-primary shadow-md"
-                    : "hover:bg-accent/50 border-transparent",
-                  // v2.3.4-ux: Border-left color based on status
-                  chat.status === 'WAITING' && "border-l-yellow-500",
-                  chat.status === 'WITH_OPERATOR' && "border-l-green-500",
-                  (chat.unreadMessageCount || 0) > 0 && "border-l-red-500",
-                  chat.status === 'ACTIVE' && "border-l-blue-400",
-                  chat.status === 'CLOSED' && "border-l-gray-400"
+                    : "hover:bg-accent/50 border-border",
+                  // v2.3.4-ux: Background tint based on status (subtle)
+                  chat.status === 'WAITING' && "bg-yellow-50 dark:bg-yellow-950/20",
+                  chat.status === 'WITH_OPERATOR' && "bg-green-50 dark:bg-green-950/20",
+                  (chat.unreadMessageCount || 0) > 0 && "bg-red-50 dark:bg-red-950/20"
                 )}
               >
                 {/* Checkbox for bulk selection */}
