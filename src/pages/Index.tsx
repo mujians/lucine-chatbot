@@ -990,53 +990,37 @@ export default function Index() {
                       disabled={bulkActionLoading}
                       className="flex-1"
                     >
-                      <Download className="h-4 w-4 mr-1" />
-                      Esporta
+                      Azioni ({selectedChatIds.size})
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => {
-                      const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
-                      exportChatsToCSV(selectedChats);
-                    }}>
-                      Esporta CSV
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem onClick={handleBulkClose}>
+                      📝 Chiudi
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
-                      exportChatsToJSON(selectedChats);
-                    }}>
-                      Esporta JSON
+                    <DropdownMenuItem onClick={handleBulkArchive}>
+                      📦 Archivia
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
+                        exportChatsToCSV(selectedChats);
+                      }}
+                    >
+                      📊 Esporta CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
+                        exportChatsToJSON(selectedChats);
+                      }}
+                    >
+                      📄 Esporta JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBulkDelete} className="text-destructive">
+                      🗑️ Elimina
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleBulkClose}
-                  disabled={bulkActionLoading}
-                  className="flex-1"
-                >
-                  Chiudi
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleBulkArchive}
-                  disabled={bulkActionLoading}
-                  className="flex-1"
-                >
-                  Archivia
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={handleBulkDelete}
-                  disabled={bulkActionLoading}
-                  className="flex-1"
-                >
-                  Elimina
-                </Button>
               </div>
             </div>
           )}
