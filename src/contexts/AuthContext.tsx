@@ -29,12 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchCsrfToken = async () => {
+    // v2.3.2: CSRF temporarily disabled on backend due to cross-origin issues
+    // JWT authentication is still active and provides security
+    // Keeping function for future re-enablement
     try {
-      const response = await api.get('/csrf-token');
-      const token = response.data.token;
-      setCsrfToken(token); // Update React state
-      setApiCsrfToken(token); // Update api.ts CSRF token for interceptor
-      return token;
+      // const response = await api.get('/csrf-token');
+      // const token = response.data.token;
+      // setCsrfToken(token);
+      // setApiCsrfToken(token);
+      console.log('ℹ️ CSRF protection temporarily disabled');
+      return null;
     } catch (error) {
       console.error('Failed to fetch CSRF token:', error);
       return null;
