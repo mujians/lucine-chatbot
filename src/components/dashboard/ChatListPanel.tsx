@@ -85,10 +85,16 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
               <div
                 key={chat.id}
                 className={cn(
-                  "relative group rounded-lg mb-2 transition-all border-2",
+                  "relative group rounded-lg mb-2 transition-all border-2 border-l-4",
                   selectedChatId === chat.id
                     ? "bg-accent border-primary shadow-md"
-                    : "hover:bg-accent/50 border-transparent"
+                    : "hover:bg-accent/50 border-transparent",
+                  // v2.3.4-ux: Border-left color based on status
+                  chat.status === 'WAITING' && "border-l-yellow-500",
+                  chat.status === 'WITH_OPERATOR' && "border-l-green-500",
+                  (chat.unreadMessageCount || 0) > 0 && "border-l-red-500",
+                  chat.status === 'ACTIVE' && "border-l-blue-400",
+                  chat.status === 'CLOSED' && "border-l-gray-400"
                 )}
               >
                 {/* Checkbox for bulk selection */}
@@ -111,10 +117,11 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
                     onToggleChatSelection && "pl-10"
                   )}
                 >
-                  <div className="flex items-start justify-between mb-1 pr-8">
+                  {/* v2.3.4-ux: HEADER - Nome e Time */}
+                  <div className="flex items-start justify-between mb-2 pr-8">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="font-medium text-sm truncate">
-                        {chat.userName || `Chat #${chat.id.slice(0, 8)}`}
+                      <span className="font-semibold text-base truncate">
+                        {chat.userName || `Visitatore`}
                       </span>
                       {chat.isArchived && (
                         <Archive className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -122,42 +129,66 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
                       {chat.isFlagged && (
                         <Flag className="h-3 w-3 text-orange-500 shrink-0" />
                       )}
-                      {(chat.unreadMessageCount || 0) > 0 && (
-                        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-white bg-red-500 rounded-full shrink-0">
-                          {(chat.unreadMessageCount || 0) > 9 ? '9+' : chat.unreadMessageCount}
-                        </span>
-                      )}
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                      {format(new Date(chat.createdAt), 'HH:mm', { locale: it })}
+                    <span className="text-sm text-muted-foreground shrink-0 ml-2">
+                      {(() => {
+                        const date = new Date(chat.lastMessageAt || chat.createdAt);
+                        const now = new Date();
+                        const diffMs = now.getTime() - date.getTime();
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffHours = Math.floor(diffMs / 3600000);
+                        const diffDays = Math.floor(diffMs / 86400000);
+
+                        if (diffMins < 1) return 'ora';
+                        if (diffMins < 60) return `${diffMins} min fa`;
+                        if (diffHours < 24) return `${diffHours}h fa`;
+                        if (diffDays === 1) return 'Ieri';
+                        if (diffDays < 7) return `${diffDays}g fa`;
+                        return format(date, 'dd/MM', { locale: it });
+                      })()}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={cn("flex items-center gap-1", getStatusColor(chat.status))}>
-                      {getStatusIcon(chat.status)}
-                      <span className="text-xs">{getStatusLabel(chat.status)}</span>
-                    </span>
-                  </div>
-
+                  {/* v2.3.4-ux: CONTENT - Last message (2 lines, readable) */}
                   {chat.lastMessage && (
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-sm text-foreground/70 line-clamp-2 mb-2 leading-relaxed">
                       {chat.lastMessage.content}
                     </p>
                   )}
 
-                  {/* Accept Button for WAITING chats */}
+                  {/* v2.3.4-ux: FOOTER - Status + Unread Badge */}
+                  <div className="flex items-center justify-between">
+                    <span className={cn("flex items-center gap-1 text-xs", getStatusColor(chat.status))}>
+                      {getStatusIcon(chat.status)}
+                      <span>{getStatusLabel(chat.status)}</span>
+                    </span>
+                    {(chat.unreadMessageCount || 0) > 0 && (
+                      <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-2 text-sm font-bold text-white bg-red-500 rounded-full">
+                        {(chat.unreadMessageCount || 0) > 9 ? '9+' : chat.unreadMessageCount}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* v2.3.4-ux: Accept Button for WAITING chats (more prominent) */}
                   {chat.status === ChatStatus.WAITING && onAcceptChat && (
-                    <div className="mt-2">
+                    <div className="mt-3">
                       <Button
                         size="sm"
-                        className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full bg-green-600 hover:bg-green-700 text-base font-bold py-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           onAcceptChat(chat);
                         }}
                       >
                         ✓ Accetta Chat
+                        {(() => {
+                          const date = new Date(chat.lastMessageAt || chat.createdAt);
+                          const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
+                          if (diffMins > 0) {
+                            return <span className="ml-1 text-xs font-normal">(attesa {diffMins} min)</span>;
+                          }
+                          return null;
+                        })()}
                       </Button>
                     </div>
                   )}

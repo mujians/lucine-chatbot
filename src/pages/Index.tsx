@@ -34,6 +34,9 @@ export default function Index() {
   const [activeAIChats, setActiveAIChats] = useState<any[]>([]);
   const [showAIChats, setShowAIChats] = useState(false);
 
+  // v2.3.4-ux: Tab navigation (Attive/AI/Chiuse)
+  const [activeTab, setActiveTab] = useState<'active' | 'ai' | 'closed'>('active');
+
   const { socket, connected } = useSocket();
   const { operator, logout } = useAuth();
   const navigate = useNavigate();
@@ -593,6 +596,15 @@ export default function Index() {
   const handleCloseChat = () => {
     if (!selectedChat || !socket || !operator) return;
 
+    // v2.3.4-ux: Confirmation before closing
+    const confirmed = window.confirm(
+      `Chiudere la chat con ${selectedChat.userName || 'questo utente'}?\n\n` +
+      `La chat verrà terminata e l'utente riceverà una notifica.\n` +
+      `Potrai riaprirla entro 5 minuti se necessario.`
+    );
+
+    if (!confirmed) return;
+
     socket.emit('close_chat', {
       sessionId: selectedChat.id,
       operatorId: operator.id,
@@ -602,7 +614,18 @@ export default function Index() {
   };
 
   const handleDeleteChat = async (chat: ChatSession) => {
-    if (!confirm(`Eliminare definitivamente la chat #${chat.id.slice(0, 8)}?`)) return;
+    // v2.3.4-ux: Enhanced confirmation with details
+    const messageCount = chat.messages?.length || 0;
+    const confirmed = window.confirm(
+      `Eliminare definitivamente la chat con ${chat.userName || 'questo utente'}?\n\n` +
+      `⚠️ Questa azione è IRREVERSIBILE.\n` +
+      `Verranno eliminati:\n` +
+      `- ${messageCount} messaggi\n` +
+      `- Tutti i dati della conversazione\n\n` +
+      `Consiglio: Usa "Archivia" per conservare i dati.`
+    );
+
+    if (!confirmed) return;
 
     try {
       await chatApi.deleteSession(chat.id);
@@ -790,7 +813,28 @@ export default function Index() {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedChatIds.size === 0 || !confirm(`Eliminare DEFINITIVAMENTE ${selectedChatIds.size} chat?`)) return;
+    if (selectedChatIds.size === 0) return;
+
+    // v2.3.4-ux: Enhanced bulk delete confirmation
+    const count = selectedChatIds.size;
+    const confirmed = window.confirm(
+      `⚠️ ATTENZIONE: Eliminazione multipla\n\n` +
+      `Stai per eliminare ${count} chat definitivamente.\n` +
+      `Questa azione è IRREVERSIBILE.\n\n` +
+      `Sei sicuro di voler procedere?`
+    );
+
+    if (!confirmed) return;
+
+    // Extra confirmation for large bulk deletes
+    if (count > 10) {
+      const doubleConfirm = window.confirm(
+        `Conferma finale:\n\n` +
+        `Stai eliminando ${count} chat.\n` +
+        `Sei ASSOLUTAMENTE SICURO?`
+      );
+      if (!doubleConfirm) return;
+    }
 
     setBulkActionLoading(true);
     try {
@@ -811,7 +855,17 @@ export default function Index() {
   };
 
   const handleBulkClose = async () => {
-    if (selectedChatIds.size === 0 || !confirm(`Chiudere ${selectedChatIds.size} chat?`)) return;
+    if (selectedChatIds.size === 0) return;
+
+    // v2.3.4-ux: Enhanced bulk close confirmation
+    const count = selectedChatIds.size;
+    const confirmed = window.confirm(
+      `Chiudere ${count} chat?\n\n` +
+      `Tutte le chat selezionate verranno terminate.\n` +
+      `Gli utenti riceveranno una notifica di chiusura.`
+    );
+
+    if (!confirmed) return;
 
     setBulkActionLoading(true);
     try {
@@ -878,29 +932,76 @@ export default function Index() {
               )}
             </div>
 
-            {/* Filter buttons */}
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant={showArchived ? 'default' : 'outline'}
-                onClick={() => setShowArchived(!showArchived)}
-                className="flex-1"
+            {/* v2.3.4-ux: Tab Navigation */}
+            <div className="flex gap-1 border rounded-lg p-1 bg-muted/30">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'active'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <Archive className="h-4 w-4 mr-1" />
-                Archiviate
-              </Button>
-              <Button
-                size="sm"
-                variant={showOnlyFlagged ? 'default' : 'outline'}
-                onClick={() => setShowOnlyFlagged(!showOnlyFlagged)}
-                className="flex-1"
+                🔥 Attive
+                {(() => {
+                  const count = chats.filter(c =>
+                    (c.status === 'WAITING' || c.status === 'WITH_OPERATOR' || c.status === 'ACTIVE') &&
+                    !c.isArchived
+                  ).length;
+                  return count > 0 ? (
+                    <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-white bg-red-500 rounded-full">
+                      {count}
+                    </span>
+                  ) : null;
+                })()}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('ai')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'ai'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <Flag className="h-4 w-4 mr-1" />
-                Segnalate
-              </Button>
+                🤖 AI
+                {(() => {
+                  const count = chats.filter(c => c.status === 'ACTIVE' && !c.isArchived).length;
+                  return count > 0 ? (
+                    <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-white bg-blue-500 rounded-full">
+                      {count}
+                    </span>
+                  ) : null;
+                })()}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('closed')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'closed'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                📦 Chiuse
+              </button>
             </div>
 
-            <p className="text-sm text-muted-foreground">{chats.length} chat</p>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const filteredCount = chats.filter(chat => {
+                  if (activeTab === 'active') {
+                    return (chat.status === 'WAITING' || chat.status === 'WITH_OPERATOR' || chat.status === 'ACTIVE') && !chat.isArchived;
+                  } else if (activeTab === 'ai') {
+                    return chat.status === 'ACTIVE' && !chat.isArchived;
+                  } else if (activeTab === 'closed') {
+                    return chat.status === 'CLOSED' || chat.status === 'TICKET_CREATED' || chat.isArchived;
+                  }
+                  return true;
+                }).length;
+                return `${filteredCount} chat`;
+              })()}
+            </p>
 
             {/* ISSUE #10: Active AI Chats Section */}
             {activeAIChats.length > 0 && (
@@ -1026,7 +1127,22 @@ export default function Index() {
           )}
 
           <ChatListPanel
-            chats={chats}
+            chats={(() => {
+              // v2.3.4-ux: Filter chats based on active tab
+              return chats.filter(chat => {
+                if (activeTab === 'active') {
+                  // Attive: WAITING, WITH_OPERATOR, ACTIVE (not AI-only)
+                  return (chat.status === 'WAITING' || chat.status === 'WITH_OPERATOR') && !chat.isArchived;
+                } else if (activeTab === 'ai') {
+                  // AI: Only ACTIVE status (AI-only chats)
+                  return chat.status === 'ACTIVE' && !chat.isArchived;
+                } else if (activeTab === 'closed') {
+                  // Chiuse: CLOSED, TICKET_CREATED, or archived
+                  return chat.status === 'CLOSED' || chat.status === 'TICKET_CREATED' || chat.isArchived;
+                }
+                return true;
+              });
+            })()}
             selectedChatId={selectedChat?.id}
             selectedChatIds={selectedChatIds}
             onSelectChat={handleSelectChat}
