@@ -383,6 +383,38 @@ export default function Index() {
       ));
     });
 
+    // v2.3.4: User inactivity warning (presence check sent)
+    socket.on('user_inactivity_warning', (data) => {
+      console.log('⚠️ User inactivity warning:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || `${data.userName} è inattivo da 5 minuti. Gli è stato chiesto se è ancora presente.`,
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+
+      // Show notification to operator
+      notificationService.notifyNewMessage(
+        data.sessionId,
+        data.userName || 'Utente',
+        `⚠️ ${data.userName || 'Utente'} inattivo - controllo presenza inviato`
+      );
+    });
+
+    // v2.3.4: Chat closed due to user inactivity
+    socket.on('chat_closed_inactivity', (data) => {
+      console.log('🔒 Chat closed due to inactivity:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || 'Chat chiusa automaticamente per inattività utente',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+      loadChats(); // Refresh chat list
+    });
+
     return () => {
       socket.off('new_chat_request');
       socket.off('user_message');
@@ -407,6 +439,8 @@ export default function Index() {
       socket.off('ai_chat_updated');
       socket.off('user_spam_detected');
       socket.off('user_name_captured');
+      socket.off('user_inactivity_warning');
+      socket.off('chat_closed_inactivity');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
