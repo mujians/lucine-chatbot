@@ -6,7 +6,7 @@ import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Archive, Flag, Bot, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X, Bot, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +25,6 @@ export default function Index() {
   const [selectedChat, setSelectedChat] = useState<ChatSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
-  const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
@@ -49,7 +47,7 @@ export default function Index() {
   // Load initial chats
   useEffect(() => {
     loadChats();
-  }, [searchQuery, showArchived, showOnlyFlagged]);
+  }, [searchQuery]);
 
   // ISSUE #10: Load active AI chats on mount
   useEffect(() => {
@@ -451,8 +449,6 @@ export default function Index() {
     try {
       const params: any = {};
       if (searchQuery) params.search = searchQuery;
-      if (showArchived) params.isArchived = true;
-      if (showOnlyFlagged) params.isFlagged = true;
 
       const response = await chatApi.getSessions(params);
 
