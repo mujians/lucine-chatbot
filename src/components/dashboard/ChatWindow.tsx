@@ -63,7 +63,6 @@ export function ChatWindow({
   const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]); // Internal Notes
   const [showNotes, setShowNotes] = useState(false); // Notes sidebar toggle
   const [uploadingFile, setUploadingFile] = useState(false); // File upload state
-  const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL'); // Priority
   const [tags, setTags] = useState<string[]>([]); // Tags
   const [newTag, setNewTag] = useState(''); // New tag input
   const [userHistory, setUserHistory] = useState<UserHistory | null>(null); // User History
@@ -82,14 +81,12 @@ export function ChatWindow({
   const { operator: currentOperator } = useAuth();
   const { socket } = useSocket();
 
-  // Reset message input and initialize priority/tags when chat changes
+  // Reset message input and initialize tags when chat changes
   useEffect(() => {
     setMessage('');
     setFlagReason('');
     setUserIsTyping(false);
     if (selectedChat) {
-      setPriority(selectedChat.priority || 'NORMAL');
-
       // Parse tags with error handling
       let parsedTags: string[] = [];
       if (selectedChat.tags && typeof selectedChat.tags === 'string' && selectedChat.tags.trim()) {
@@ -333,19 +330,7 @@ export function ChatWindow({
     }
   };
 
-  // P1.8: Priority & Tags handlers
-  const handlePriorityChange = async (newPriority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT') => {
-    if (!selectedChat) return;
-    try {
-      await chatApi.updatePriority(selectedChat.id, newPriority);
-      setPriority(newPriority);
-      console.log('✅ Priority updated:', newPriority);
-    } catch (error) {
-      console.error('Error updating priority:', error);
-      alert('Errore durante l\'aggiornamento della priorità');
-    }
-  };
-
+  // P1.8: Tags handlers
   const handleAddTag = async () => {
     if (!newTag.trim() || !selectedChat) return;
     const updatedTags = [...tags, newTag.trim()];
@@ -568,23 +553,8 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* P1.8: Priority & Tags Section */}
+      {/* P1.8: Tags Section */}
       <div className="border-b bg-card px-6 py-3 flex items-center gap-4">
-        {/* Priority Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Priorità:</span>
-          <select
-            value={priority}
-            onChange={(e) => handlePriorityChange(e.target.value as 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT')}
-            className="px-3 py-1 text-sm border rounded-md bg-background focus:ring-2 focus:ring-ring focus:outline-none"
-          >
-            <option value="LOW">🟢 Bassa</option>
-            <option value="NORMAL">🔵 Normale</option>
-            <option value="HIGH">🟠 Alta</option>
-            <option value="URGENT">🔴 Urgente</option>
-          </select>
-        </div>
-
         {/* Tags */}
         <div className="flex items-center gap-2 flex-wrap flex-1">
           <span className="text-sm text-muted-foreground">Tags:</span>
