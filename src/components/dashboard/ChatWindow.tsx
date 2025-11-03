@@ -74,6 +74,7 @@ export function ChatWindow({
     operatorNotes: '',
   }); // Convert form data
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null); // Ref for ScrollArea container
   const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
   const fileInputRef = useRef<HTMLInputElement>(null); // File input ref
   const { operator: currentOperator } = useAuth();
@@ -125,12 +126,25 @@ export function ChatWindow({
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    // ScrollArea uses Radix UI which has an internal viewport
-    // We need to find the actual scrollable element
-    const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
-    }
+    // v2.3.5: ISSUE #12 FIX - Use specific ref to avoid scrolling wrong viewport
+    // Use setTimeout to ensure DOM is fully rendered before scrolling
+    const scrollToBottom = () => {
+      if (!scrollContainerRef.current) return;
+
+      // Find viewport specifically within our ScrollArea container
+      const viewport = scrollContainerRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+        console.log('✅ Auto-scrolled to bottom:', viewport.scrollHeight);
+      } else {
+        console.warn('⚠️ Viewport not found for auto-scroll');
+      }
+    };
+
+    // Wait for DOM update before scrolling
+    const timeoutId = setTimeout(scrollToBottom, 50);
+
+    return () => clearTimeout(timeoutId);
   }, [selectedChat?.messages, selectedChat?.id, userIsTyping]);
 
   const loadAvailableOperators = useCallback(async () => {
@@ -510,7 +524,7 @@ export function ChatWindow({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-6">
+      <ScrollArea className="flex-1 p-6" ref={scrollContainerRef}>
         <div className="space-y-4" ref={scrollAreaRef} key={selectedChat.id}>
           {selectedChat.messages?.map((msg: ChatMessage) => (
             <div

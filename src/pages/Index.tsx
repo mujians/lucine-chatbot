@@ -384,6 +384,26 @@ export default function Index() {
       ));
     });
 
+    // v2.3.5: ISSUE #10 - User returned to AI
+    socket.on('user_returned_to_ai', (data) => {
+      console.log('🤖 User returned to AI:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || 'L\'utente è tornato all\'assistente AI',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+      loadChats(); // Refresh to remove from operator's list
+      loadActiveAIChats(); // Refresh AI chats list
+    });
+
+    socket.on('chat_returned_to_ai', (data) => {
+      console.log('🤖 Chat returned to AI:', data);
+      loadChats(); // Refresh chat list
+      loadActiveAIChats(); // Refresh AI chats list
+    });
+
     // v2.3.4: User inactivity warning (presence check sent)
     socket.on('user_inactivity_warning', (data) => {
       console.log('⚠️ User inactivity warning:', data);
@@ -442,6 +462,8 @@ export default function Index() {
       socket.off('user_name_captured');
       socket.off('user_inactivity_warning');
       socket.off('chat_closed_inactivity');
+      socket.off('user_returned_to_ai');
+      socket.off('chat_returned_to_ai');
     };
   }, [socket, selectedChat, unreadCount, operator]);
 
@@ -962,7 +984,9 @@ export default function Index() {
               >
                 🤖 AI
                 {(() => {
-                  const count = chats.filter(c => c.status === 'ACTIVE' && !c.isArchived).length;
+                  // v2.3.5: ISSUE #14 FIX - Use activeAIChats.length instead of filtering from chats
+                  // This ensures badge matches the actual "Chat AI Attive" count below
+                  const count = activeAIChats.length;
                   return count > 0 ? (
                     <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-white bg-blue-500 rounded-full">
                       {count}
