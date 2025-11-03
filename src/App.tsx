@@ -10,6 +10,7 @@ import Settings from '@/pages/Settings';
 import Operators from '@/pages/Operators';
 import Profile from '@/pages/Profile';
 import Analytics from '@/pages/Analytics';
+import Ratings from '@/pages/Ratings';
 import CannedResponses from '@/pages/CannedResponses';
 import SystemStatus from '@/pages/SystemStatus';
 
@@ -138,6 +139,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Analytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ratings"
+        element={
+          <ProtectedRoute>
+            <Ratings />
           </ProtectedRoute>
         }
       />

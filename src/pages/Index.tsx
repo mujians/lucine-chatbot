@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { TopBar } from '@/components/dashboard/TopBar';
-import { OperatorSidebar } from '@/components/dashboard/OperatorSidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import type { Notification } from '@/components/dashboard/NotificationCenter';
 import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
 import { Input } from '@/components/ui/input';
@@ -28,16 +27,74 @@ export default function Index() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
-  const [newTicketCount, setNewTicketCount] = useState(0);
   const [activeAIChats, setActiveAIChats] = useState<any[]>([]);
   const [showAIChats, setShowAIChats] = useState(false);
 
   // v2.3.4-ux: Tab navigation (Attive/AI/Chiuse)
   const [activeTab, setActiveTab] = useState<'active' | 'ai' | 'closed'>('active');
 
+  // v2.3.5: In-app notifications
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
   const { socket, connected } = useSocket();
-  const { operator, logout } = useAuth();
-  const navigate = useNavigate();
+  const { operator } = useAuth();
+
+  // v2.3.5: Notification handlers
+  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: `notif-${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      read: false,
+    };
+    setNotifications(prev => [newNotification, ...prev].slice(0, 50)); // Keep max 50 notifications
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.sessionId) {
+      // Find chat in current list
+      const chat = chats.find(c => c.id === notification.sessionId);
+      if (chat) {
+        handleSelectChat(chat);
+      } else {
+        // Chat might be in a different tab, try to load it
+        chatApi.getSession(notification.sessionId).then((response) => {
+          const session = response.data || response;
+          if (session) {
+            // Parse messages
+            let messages = [];
+            if (typeof session.messages === 'string' && session.messages.trim()) {
+              try {
+                messages = JSON.parse(session.messages);
+              } catch (e) {
+                console.error('Failed to parse messages:', e);
+              }
+            } else if (Array.isArray(session.messages)) {
+              messages = session.messages;
+            }
+
+            const parsedSession = {
+              ...session,
+              messages,
+              lastMessage: messages.length > 0 ? messages[messages.length - 1] : undefined,
+            };
+
+            setSelectedChat(parsedSession);
+          }
+        }).catch((error) => {
+          console.error('Failed to load chat from notification:', error);
+        });
+      }
+    }
+  };
+
+  const handleMarkNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+  };
 
   // Richiedi permesso notifiche al mount
   useEffect(() => {
@@ -75,11 +132,20 @@ export default function Index() {
       console.log('📢 New chat request:', data);
       loadChats();
 
-      // Notifica nuova chat
+      // Notifica nuova chat (browser notification)
       notificationService.notifyNewChat(
         data.sessionId,
         data.userName || 'Utente sconosciuto'
       );
+
+      // v2.3.5: Add in-app notification
+      addNotification({
+        type: 'new_chat',
+        title: 'Nuova richiesta chat',
+        message: `${data.userName || 'Utente sconosciuto'} richiede assistenza`,
+        sessionId: data.sessionId,
+        userName: data.userName,
+      });
 
       // Incrementa unread count
       setUnreadCount(prev => prev + 1);
@@ -97,6 +163,15 @@ export default function Index() {
           data.userName || 'Utente',
           data.message.content
         );
+
+        // v2.3.5: Add in-app notification
+        addNotification({
+          type: 'new_message',
+          title: `Nuovo messaggio da ${data.userName || 'Utente'}`,
+          message: data.message.content.substring(0, 100) + (data.message.content.length > 100 ? '...' : ''),
+          sessionId: data.sessionId,
+          userName: data.userName,
+        });
 
         // Incrementa unread count
         setUnreadCount(prev => prev + 1);
@@ -137,6 +212,15 @@ export default function Index() {
           data.userName || 'Utente sconosciuto'
         );
 
+        // v2.3.5: Add in-app notification
+        addNotification({
+          type: 'chat_assigned',
+          title: 'Chat assegnata',
+          message: `Ti è stata assegnata la chat con ${data.userName || 'Utente sconosciuto'}`,
+          sessionId: data.sessionId,
+          userName: data.userName,
+        });
+
         setUnreadCount(prev => prev + 1);
         notificationService.updateBadgeCount(unreadCount + 1);
       }
@@ -156,6 +240,15 @@ export default function Index() {
         data.sessionId,
         data.userName || 'Utente sconosciuto'
       );
+
+      // v2.3.5: Add in-app notification
+      addNotification({
+        type: 'new_chat',
+        title: 'Chat in attesa',
+        message: `${data.userName || 'Utente sconosciuto'} è in attesa di un operatore`,
+        sessionId: data.sessionId,
+        userName: data.userName,
+      });
 
       setUnreadCount(prev => prev + 1);
       notificationService.updateBadgeCount(unreadCount + 1);
@@ -257,7 +350,6 @@ export default function Index() {
     // New ticket created notification
     socket.on('new_ticket_created', (data) => {
       console.log('🎫 New ticket created:', data);
-      setNewTicketCount(prev => prev + 1);
 
       // Show notification
       notificationService.notifyNewMessage(
@@ -903,11 +995,6 @@ export default function Index() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -917,14 +1004,13 @@ export default function Index() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <TopBar
-        operatorName={operator?.name || 'Operatore'}
-        onLogout={handleLogout}
-        unreadCount={unreadCount}
-      />
+    <DashboardLayout
+      notifications={notifications}
+      onNotificationClick={handleNotificationClick}
+      onMarkNotificationAsRead={handleMarkNotificationAsRead}
+      onClearAllNotifications={handleClearAllNotifications}
+    >
       <div className="flex flex-1 overflow-hidden">
-        <OperatorSidebar ticketCount={newTicketCount} />
 
         {/* Search & Filters Panel */}
         <div className="w-80 border-r bg-card flex flex-col">
@@ -1186,14 +1272,14 @@ export default function Index() {
           onFlagChat={handleFlagChatById}
           onCloseChatSession={handleCloseChatSession}
         />
-      </div>
 
-      {/* WebSocket connection indicator */}
-      {!connected && (
-        <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg">
-          ⚠️ WebSocket disconnesso
-        </div>
-      )}
-    </div>
+        {/* WebSocket connection indicator */}
+        {!connected && (
+          <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg z-50">
+            ⚠️ WebSocket disconnesso
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
   );
 }
