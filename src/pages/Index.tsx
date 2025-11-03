@@ -261,6 +261,13 @@ export default function Index() {
 
     socket.on('chat_request_cancelled', (data) => {
       console.log('🚫 Chat request cancelled:', data);
+
+      // v2.3.6: FIX - Ignore if current operator is the one who accepted
+      if (data.reason === 'accepted_by_another_operator' && data.acceptedBy === operator?.id) {
+        console.log('ℹ️ Ignoring chat_request_cancelled - I accepted this chat');
+        return;
+      }
+
       loadChats();
     });
 
@@ -786,16 +793,25 @@ export default function Index() {
       console.log(`✅ Accepting chat ${chat.id} for operator ${operator.id}`);
       await chatApi.acceptOperator(chat.id, operator.id);
 
-      // Automatically select and open the chat after accepting
-      setSelectedChat(chat);
-
       // IMPORTANT: Join the chat room to receive messages
       if (socket) {
         socket.emit('join_chat', { sessionId: chat.id });
         console.log(`📤 Operator joined chat room: ${chat.id}`);
       }
 
-      loadChats();
+      // v2.3.6: Load chats first, then select with updated data
+      await loadChats();
+
+      // Select the chat with updated status (WITH_OPERATOR)
+      setChats(prev => {
+        const updatedChat = prev.find(c => c.id === chat.id);
+        if (updatedChat) {
+          setSelectedChat(updatedChat);
+        }
+        return prev;
+      });
+
+      console.log(`✅ Chat ${chat.id} accepted and opened successfully`);
     } catch (error: any) {
       console.error('Failed to accept chat:', error);
       alert(error.response?.data?.error?.message || 'Errore durante l\'accettazione della chat');
