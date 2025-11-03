@@ -272,13 +272,6 @@ export const chatApi = {
     }).then(res => res.data);
   },
 
-  // Priority & Tags (P1.8)
-  updatePriority: (id: string, priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT') =>
-    api.put(`/chat/sessions/${id}/priority`, { priority }).then(res => res.data),
-
-  updateTags: (id: string, tags: string[]) =>
-    api.put(`/chat/sessions/${id}/tags`, { tags }).then(res => res.data),
-
   // User History (P0.2)
   getUserHistory: (userId: string) =>
     api.get(`/chat/users/${userId}/history`).then(res => res.data),

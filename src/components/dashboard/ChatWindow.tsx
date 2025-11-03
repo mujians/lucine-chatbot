@@ -63,8 +63,6 @@ export function ChatWindow({
   const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]); // Internal Notes
   const [showNotes, setShowNotes] = useState(false); // Notes sidebar toggle
   const [uploadingFile, setUploadingFile] = useState(false); // File upload state
-  const [tags, setTags] = useState<string[]>([]); // Tags
-  const [newTag, setNewTag] = useState(''); // New tag input
   const [userHistory, setUserHistory] = useState<UserHistory | null>(null); // User History
   const [showUserHistory, setShowUserHistory] = useState(false); // User History dialog
   const [loadingHistory, setLoadingHistory] = useState(false); // Loading state
@@ -81,24 +79,11 @@ export function ChatWindow({
   const { operator: currentOperator } = useAuth();
   const { socket } = useSocket();
 
-  // Reset message input and initialize tags when chat changes
+  // Reset message input when chat changes
   useEffect(() => {
     setMessage('');
     setFlagReason('');
     setUserIsTyping(false);
-    if (selectedChat) {
-      // Parse tags with error handling
-      let parsedTags: string[] = [];
-      if (selectedChat.tags && typeof selectedChat.tags === 'string' && selectedChat.tags.trim()) {
-        try {
-          parsedTags = JSON.parse(selectedChat.tags);
-        } catch (error) {
-          console.error('Failed to parse tags for session', selectedChat.id, error);
-          parsedTags = [];
-        }
-      }
-      setTags(parsedTags);
-    }
   }, [selectedChat?.id]);
 
   // Mark messages as read when opening chat
@@ -330,34 +315,6 @@ export function ChatWindow({
     }
   };
 
-  // P1.8: Tags handlers
-  const handleAddTag = async () => {
-    if (!newTag.trim() || !selectedChat) return;
-    const updatedTags = [...tags, newTag.trim()];
-    try {
-      await chatApi.updateTags(selectedChat.id, updatedTags);
-      setTags(updatedTags);
-      setNewTag('');
-      console.log('✅ Tag added:', newTag);
-    } catch (error) {
-      console.error('Error adding tag:', error);
-      alert('Errore durante l\'aggiunta del tag');
-    }
-  };
-
-  const handleRemoveTag = async (tagToRemove: string) => {
-    if (!selectedChat) return;
-    const updatedTags = tags.filter((t) => t !== tagToRemove);
-    try {
-      await chatApi.updateTags(selectedChat.id, updatedTags);
-      setTags(updatedTags);
-      console.log('✅ Tag removed:', tagToRemove);
-    } catch (error) {
-      console.error('Error removing tag:', error);
-      alert('Errore durante la rimozione del tag');
-    }
-  };
-
   // P0.2: User History handler
   const handleLoadUserHistory = async () => {
     if (!selectedChat?.userId) {
@@ -550,48 +507,6 @@ export function ChatWindow({
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
           </Button>
-        </div>
-      </div>
-
-      {/* P1.8: Tags Section */}
-      <div className="border-b bg-card px-6 py-3 flex items-center gap-4">
-        {/* Tags */}
-        <div className="flex items-center gap-2 flex-wrap flex-1">
-          <span className="text-sm text-muted-foreground">Tags:</span>
-          {tags.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
-            >
-              {tag}
-              <button
-                onClick={() => handleRemoveTag(tag)}
-                className="hover:text-primary/80 font-bold"
-                title="Rimuovi tag"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-          <div className="flex items-center gap-1">
-            <Input
-              type="text"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-              placeholder="Aggiungi tag"
-              className="w-32 h-7 text-sm"
-            />
-            <Button
-              onClick={handleAddTag}
-              size="sm"
-              variant="secondary"
-              className="h-7"
-              disabled={!newTag.trim()}
-            >
-              +
-            </Button>
-          </div>
         </div>
       </div>
 
