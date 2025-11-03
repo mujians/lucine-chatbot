@@ -73,6 +73,15 @@ export function ChatWindow({
     email: '',
     operatorNotes: '',
   }); // Convert form data
+
+  // v2.3.7: LACUNA #1 - Operator timeout warning
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [timeoutCountdown, setTimeoutCountdown] = useState(0); // seconds remaining
+  const timeoutWarningRef = useRef<number | null>(null); // 8min timer
+  const timeoutCountdownRef = useRef<number | null>(null); // 9min timer
+  const timeoutSoundRef = useRef<number | null>(null); // 9:30min timer
+  const countdownIntervalRef = useRef<number | null>(null); // 1sec interval
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null); // Ref for ScrollArea container
   const typingTimeoutRef = useRef<number | null>(null); // Debounce typing
@@ -166,6 +175,66 @@ export function ChatWindow({
       loadAvailableOperators();
     }
   }, [showTransferDialog, loadAvailableOperators]);
+
+  // v2.3.7: LACUNA #1 - Timeout warning for operator response
+  useEffect(() => {
+    // Clear all existing timers
+    const clearTimeoutTimers = () => {
+      if (timeoutWarningRef.current) clearTimeout(timeoutWarningRef.current);
+      if (timeoutCountdownRef.current) clearTimeout(timeoutCountdownRef.current);
+      if (timeoutSoundRef.current) clearTimeout(timeoutSoundRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      setShowTimeoutWarning(false);
+      setTimeoutCountdown(0);
+    };
+
+    // Only start timer if chat is WITH_OPERATOR and has no operator messages yet
+    if (!selectedChat || selectedChat.status !== 'WITH_OPERATOR') {
+      clearTimeoutTimers();
+      return;
+    }
+
+    // Check if operator has sent any messages
+    const operatorMessages = selectedChat.messages?.filter(m => m.type === 'operator') || [];
+    if (operatorMessages.length > 0) {
+      // Operator already responded, no need for warning
+      clearTimeoutTimers();
+      return;
+    }
+
+    // Start 8-minute timer for warning
+    console.log('⏱️ Started operator response timeout warning timer (8 min)');
+    timeoutWarningRef.current = window.setTimeout(() => {
+      console.log('⚠️ 8 minutes passed - showing timeout warning');
+      setShowTimeoutWarning(true);
+      setTimeoutCountdown(120); // 2 minutes remaining
+
+      // Start countdown timer (updates every second)
+      countdownIntervalRef.current = window.setInterval(() => {
+        setTimeoutCountdown(prev => {
+          if (prev <= 1) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Start 9:30 minute timer for sound alert
+      timeoutSoundRef.current = window.setTimeout(() => {
+        console.log('🔔 9:30 minutes - playing alert sound');
+        // Play notification sound
+        try {
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(e => console.warn('Could not play sound:', e));
+        } catch (e) {
+          console.warn('Audio not supported:', e);
+        }
+      }, 90 * 1000); // 1.5 minutes after warning (9:30 total)
+    }, 8 * 60 * 1000); // 8 minutes
+
+    return clearTimeoutTimers;
+  }, [selectedChat?.id, selectedChat?.status, selectedChat?.messages]);
 
   const handleTransfer = async () => {
     if (!selectedChat || !selectedOperatorId) return;
@@ -396,6 +465,35 @@ export function ChatWindow({
   return (
     <div className="flex-1 flex bg-background">
       <div className="flex-1 flex flex-col">
+        {/* v2.3.7: LACUNA #1 - Timeout warning banner */}
+        {showTimeoutWarning && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">
+                    Rispondi SUBITO o perderai questa chat!
+                  </p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                    Tempo rimanente: {Math.floor(timeoutCountdown / 60)}:{String(timeoutCountdown % 60).padStart(2, '0')} minuti
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                onClick={() => {
+                  const input = document.querySelector('input[placeholder="Scrivi un messaggio..."]') as HTMLInputElement;
+                  input?.focus();
+                }}
+              >
+                Invia Messaggio Ora!
+              </Button>
+            </div>
+          </div>
+        )}
+
       <div className="h-16 border-b bg-card px-6 flex items-center justify-between">
         <div>
           <h2 className="font-semibold">

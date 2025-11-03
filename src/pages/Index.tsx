@@ -201,6 +201,19 @@ export default function Index() {
       }
     });
 
+    // v2.3.7: BUG #1 - User ended conversation
+    socket.on('conversation_ended', (data) => {
+      console.log('🔴 User ended conversation:', data);
+      const systemMessage = {
+        id: `system-${Date.now()}`,
+        content: data.message || 'L\'utente ha terminato la conversazione',
+        type: 'system' as const,
+        timestamp: data.timestamp || new Date().toISOString(),
+      };
+      updateChatMessages(data.sessionId, systemMessage);
+      loadChats();
+    });
+
     socket.on('chat_assigned', (data) => {
       console.log('✅ Chat assigned:', data);
       loadChats();
@@ -539,6 +552,7 @@ export default function Index() {
       socket.off('new_chat_request');
       socket.off('user_message');
       socket.off('chat_closed');
+      socket.off('conversation_ended');
       socket.off('chat_assigned');
       socket.off('message_received');
       socket.off('chat_waiting_operator');
