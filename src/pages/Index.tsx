@@ -476,6 +476,17 @@ export default function Index() {
       if (selectedChat?.id === data.sessionId) {
         setSelectedChat(prev => prev ? { ...prev, userName: data.userName } : null);
       }
+
+      // v2.3.12: Add operator greeting message to chat (if provided)
+      if (data.message) {
+        updateChatMessages(data.sessionId, {
+          id: data.message.id,
+          type: data.message.type || 'operator',
+          content: data.message.content,
+          timestamp: data.message.createdAt || data.message.timestamp || new Date().toISOString(),
+          operatorName: data.message.operatorName,
+        });
+      }
     });
 
     // v2.3.5: ISSUE #10 - User returned to AI
