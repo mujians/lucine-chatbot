@@ -16,6 +16,13 @@ export interface ChatMessage {
   operatorName?: string;
   confidence?: number;
   suggestOperator?: boolean;
+  // Attachment fields
+  attachmentUrl?: string;
+  attachmentPublicId?: string;
+  attachmentName?: string;
+  attachmentMimetype?: string;
+  attachmentSize?: number;
+  attachmentResourceType?: 'image' | 'raw' | 'video' | 'auto';
 }
 
 export interface InternalNote {

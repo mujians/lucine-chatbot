@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History, Ticket, UserCheck } from 'lucide-react';
+import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History, Ticket, UserCheck, FileText } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator, InternalNote, UserHistory } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -657,6 +657,39 @@ export function ChatWindow({
                     : 'bg-muted'
                 )}
               >
+                {/* Attachment preview */}
+                {msg.attachmentUrl && (
+                  <div className="mb-2">
+                    {msg.attachmentResourceType === 'image' ? (
+                      <img
+                        src={msg.attachmentUrl}
+                        alt={msg.attachmentName || 'Immagine'}
+                        className="max-w-full h-auto rounded-lg max-h-64 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(msg.attachmentUrl, '_blank')}
+                      />
+                    ) : (
+                      <a
+                        href={msg.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center gap-2 p-2 rounded border hover:bg-black/5 transition-colors",
+                          msg.type === 'operator' ? 'border-primary-foreground/20' : 'border-border'
+                        )}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span className="text-sm font-medium truncate">
+                          {msg.attachmentName || 'File allegato'}
+                        </span>
+                        {msg.attachmentSize && (
+                          <span className="text-xs opacity-70">
+                            ({(msg.attachmentSize / 1024).toFixed(0)} KB)
+                          </span>
+                        )}
+                      </a>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 <p className={cn(
                   "text-xs mt-1",
