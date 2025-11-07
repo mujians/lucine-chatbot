@@ -4,6 +4,8 @@
  * P2.8: Ora rispetta le preferenze dell'operatore (quiet hours, toggles)
  */
 
+import { api } from '@/lib/api';
+
 interface OperatorPreferences {
   email: {
     newChat: boolean;
@@ -80,8 +82,8 @@ class NotificationService {
         return;
       }
 
-      const response = await fetch(`/api/operators/${operatorId}`);
-      const data = await response.json();
+      const response = await api.get(`/operators/${operatorId}`);
+      const data = response.data;
 
       const prefs = data.data?.notificationPreferences;
 
