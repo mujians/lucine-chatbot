@@ -235,7 +235,7 @@ export default function Index() {
         title: 'Conversazione terminata',
         message: `${chat?.userName || 'Utente'} ha chiuso la chat`,
         sessionId: data.sessionId,
-        userName: chat?.userName,
+        userName: chat?.userName || undefined,
       });
     });
 
