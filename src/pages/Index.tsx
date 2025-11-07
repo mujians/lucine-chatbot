@@ -6,7 +6,7 @@ import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
 import { ChatWindow } from '@/components/dashboard/ChatWindow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Bot, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,8 +29,6 @@ export default function Index() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
-  const [activeAIChats, setActiveAIChats] = useState<any[]>([]);
-  const [showAIChats, setShowAIChats] = useState(false);
 
   // v2.3.4-ux: Tab navigation (Attive/AI/Chiuse)
   const [activeTab, setActiveTab] = useState<'active' | 'ai' | 'closed'>('active');
@@ -114,10 +112,7 @@ export default function Index() {
     loadChats();
   }, [searchQuery]);
 
-  // ISSUE #10: Load active AI chats on mount
-  useEffect(() => {
-    loadActiveAIChats();
-  }, []);
+  // v2.3.10: Removed loadActiveAIChats - now using unified AI tab
 
   // Join operator room when socket connects
   useEffect(() => {
@@ -439,40 +434,13 @@ export default function Index() {
       loadChats(); // Refresh chat list
     });
 
-    // ISSUE #10: AI chat intervened
+    // v2.3.10: AI chat intervened
     socket.on('ai_chat_intervened', (data) => {
       console.log('👤 AI chat intervened:', data);
-      loadActiveAIChats(); // Refresh AI chats list
-      loadChats(); // Refresh main chat list
+      loadChats(); // Refresh chat list
     });
 
-    // v2.3: AI chat updated (real-time instead of polling)
-    socket.on('ai_chat_updated', (data) => {
-      console.log('🤖 AI chat updated:', data);
-      setActiveAIChats(prev => {
-        const index = prev.findIndex(chat => chat.id === data.sessionId);
-        const updatedChat = {
-          id: data.sessionId,
-          userName: data.userName,
-          updatedAt: data.timestamp,
-          lastMessage: {
-            content: data.lastMessage,
-            timestamp: data.timestamp
-          },
-          messageCount: data.messageCount,
-        };
-
-        if (index >= 0) {
-          // Update existing chat
-          const updated = [...prev];
-          updated[index] = updatedChat;
-          return updated;
-        } else {
-          // Add new AI chat
-          return [...prev, updatedChat];
-        }
-      });
-    });
+    // v2.3.10: Removed ai_chat_updated listener - now using unified AI tab with loadChats()
 
     // Spam Detection: User spam detected
     socket.on('user_spam_detected', (data) => {
@@ -508,13 +476,6 @@ export default function Index() {
       if (selectedChat?.id === data.sessionId) {
         setSelectedChat(prev => prev ? { ...prev, userName: data.userName } : null);
       }
-
-      // Update AI chats if it's there
-      setActiveAIChats(prev => prev.map(chat =>
-        chat.id === data.sessionId
-          ? { ...chat, userName: data.userName }
-          : chat
-      ));
     });
 
     // v2.3.5: ISSUE #10 - User returned to AI
@@ -528,13 +489,11 @@ export default function Index() {
       };
       updateChatMessages(data.sessionId, systemMessage);
       loadChats(); // Refresh to remove from operator's list
-      loadActiveAIChats(); // Refresh AI chats list
     });
 
     socket.on('chat_returned_to_ai', (data) => {
       console.log('🤖 Chat returned to AI:', data);
       loadChats(); // Refresh chat list
-      loadActiveAIChats(); // Refresh AI chats list
     });
 
     // v2.3.4: User inactivity warning (presence check sent)
@@ -642,18 +601,7 @@ export default function Index() {
     }
   };
 
-  // ISSUE #10: Load active AI chats for monitoring
-  const loadActiveAIChats = async () => {
-    try {
-      const response = await chatApi.getActiveSessions();
-      const sessionsData = response.data || response;
-      setActiveAIChats(sessionsData || []);
-      console.log(`🤖 Loaded ${sessionsData?.length || 0} active AI chats`);
-    } catch (error) {
-      console.error('❌ Failed to load active AI chats:', error);
-      setActiveAIChats([]);
-    }
-  };
+  // v2.3.10: Removed loadActiveAIChats - now using unified AI tab
 
   const updateChatMessages = (sessionId: string, newMessage: any) => {
     setChats(prev => {
@@ -854,50 +802,7 @@ export default function Index() {
   };
 
   // ISSUE #10: Intervene in active AI chat
-  const handleIntervene = async (sessionId: string) => {
-    if (!operator) return;
-
-    try {
-      console.log(`👤 Operator ${operator.id} intervening in AI chat ${sessionId}`);
-      const response = await chatApi.operatorIntervene(sessionId, operator.id);
-
-      // Join the chat room
-      if (socket) {
-        socket.emit('join_chat', { sessionId });
-        console.log(`📤 Operator joined AI chat room: ${sessionId}`);
-      }
-
-      // Refresh lists
-      await loadActiveAIChats();
-      await loadChats();
-
-      // Open the chat
-      if (response.data?.session) {
-        // Parse messages if needed
-        let messages = [];
-        if (typeof response.data.session.messages === 'string') {
-          try {
-            messages = JSON.parse(response.data.session.messages);
-          } catch (e) {
-            console.error('Failed to parse messages:', e);
-          }
-        } else if (Array.isArray(response.data.session.messages)) {
-          messages = response.data.session.messages;
-        }
-
-        setSelectedChat({
-          ...response.data.session,
-          messages,
-          lastMessage: messages.length > 0 ? messages[messages.length - 1] : undefined,
-        });
-      }
-
-      console.log(`✅ Successfully intervened in AI chat ${sessionId}`);
-    } catch (error: any) {
-      console.error('Failed to intervene in AI chat:', error);
-      alert(error.response?.data?.error?.message || 'Errore durante l\'intervento');
-    }
-  };
+  // v2.3.10: Removed handleIntervene - now using handleAcceptChat for unified intervention
 
   const handleArchiveChatById = async (chatId: string) => {
     try {
@@ -1121,9 +1026,8 @@ export default function Index() {
               >
                 🤖 AI
                 {(() => {
-                  // v2.3.5: ISSUE #14 FIX - Use activeAIChats.length instead of filtering from chats
-                  // This ensures badge matches the actual "Chat AI Attive" count below
-                  const count = activeAIChats.length;
+                  // v2.3.10: Count AI chats from main chats array
+                  const count = chats.filter(c => c.status === 'ACTIVE' && !c.isArchived).length;
                   return count > 0 ? (
                     <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-white bg-blue-500 rounded-full">
                       {count}
@@ -1160,58 +1064,8 @@ export default function Index() {
               })()}
             </p>
 
-            {/* ISSUE #10: Active AI Chats Section */}
-            {activeAIChats.length > 0 && (
-              <div className="mt-3 pt-3 border-t">
-                <button
-                  onClick={() => setShowAIChats(!showAIChats)}
-                  className="w-full flex items-center justify-between text-sm font-medium hover:opacity-80 transition-opacity"
-                >
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4" />
-                    <span>Chat AI Attive</span>
-                    <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
-                      {activeAIChats.length}
-                    </span>
-                  </div>
-                  {showAIChats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-
-                {showAIChats && (
-                  <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
-                    {activeAIChats.map((aiChat) => (
-                      <div
-                        key={aiChat.id}
-                        className="p-2 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {aiChat.userName || 'Utente'}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {aiChat.lastMessage?.content || 'Nessun messaggio'}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {aiChat.messageCount} messaggi
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleIntervene(aiChat.id)}
-                            className="shrink-0 text-xs"
-                          >
-                            Intervieni
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+          {/* v2.3.10: Removed duplicate "Chat AI Attive" box - now unified in AI tab */}
 
           {/* Bulk actions bar */}
           {selectedChatIds.size > 0 && (

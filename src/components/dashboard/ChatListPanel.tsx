@@ -1,4 +1,4 @@
-import { Clock, Bot, User, Check, Circle, MoreVertical, Trash2, Archive, ArchiveRestore, Flag, FlagOff } from 'lucide-react';
+import { Clock, Bot, User, Check, Circle, MoreVertical, Trash2, Archive, ArchiveRestore, Flag, FlagOff, UserPlus } from 'lucide-react';
 import type { ChatSession } from '@/types';
 import { ChatStatus } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -187,6 +187,24 @@ export function ChatListPanel({ chats = [], selectedChatId, selectedChatIds, onS
                           }
                           return null;
                         })()}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* v2.3.10: Intervieni Button for AI chats (ACTIVE status) */}
+                  {chat.status === ChatStatus.ACTIVE && onAcceptChat && (
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-base font-semibold py-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAcceptChat(chat);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Intervieni
                       </Button>
                     </div>
                   )}
