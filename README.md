@@ -1,8 +1,15 @@
 # Lucine Chatbot - Dashboard Operatori
 
-**Aggiornato:** 21 Ottobre 2025 | **Versione:** 1.0.0 | **Status:** In Sviluppo Attivo
+**Aggiornato:** 7 Novembre 2025 | **Versione:** 2.3.12 | **Status:** ✅ Production Ready
 
 Dashboard web real-time per operatori del sistema Lucine Chatbot - customer support intelligente (AI + Human) per e-commerce Shopify.
+
+## 🚀 Deployment Automatico
+
+⚠️ **IMPORTANTE - Workflow di Deploy:**
+- **NON testare in locale** - sempre direttamente in produzione
+- `git push` → Render.com autodeploy automatico
+- URL Produzione: https://lucine-dashboard.onrender.com
 
 ---
 
