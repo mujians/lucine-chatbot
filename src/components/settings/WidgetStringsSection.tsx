@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, RotateCcw, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import { api } from '@/lib/api';
 
 interface WidgetString {
   key: string;
@@ -17,8 +17,6 @@ interface WidgetString {
 interface StringsByCategory {
   [category: string]: WidgetString[];
 }
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const CATEGORIES = {
   ai: {
@@ -106,12 +104,7 @@ export function WidgetStringsSection() {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/settings/widget-strings`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/settings/widget-strings');
 
       const fetchedStrings = response.data.data.strings;
       setStrings(fetchedStrings);
@@ -148,23 +141,13 @@ export function WidgetStringsSection() {
       setError(null);
       setSuccess(false);
 
-      const token = localStorage.getItem('token');
       const stringsObject: { [key: string]: string } = {};
 
       strings.forEach(s => {
         stringsObject[s.key] = s.value;
       });
 
-      await axios.put(
-        `${API_URL}/settings/widget-strings`,
-        { strings: stringsObject },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      await api.put('/settings/widget-strings', { strings: stringsObject });
 
       setOriginalStrings(JSON.parse(JSON.stringify(strings)));
       setChangedKeys(new Set());
@@ -188,16 +171,7 @@ export function WidgetStringsSection() {
       setError(null);
       setSuccess(false);
 
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_URL}/settings/widget-strings/reset`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await api.post('/settings/widget-strings/reset');
 
       await fetchStrings();
       setSuccess(true);
