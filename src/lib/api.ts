@@ -328,17 +328,3 @@ export const cannedResponsesApi = {
     api.post(`/canned-responses/${id}/use`).then(res => res.data),
 };
 
-// ============================================
-// HEALTH API
-// ============================================
-
-export const healthApi = {
-  getSystemHealth: () =>
-    api.get('/health/system').then(res => res.data),
-
-  getQuickHealth: () =>
-    api.get('/health').then(res => res.data),
-
-  getLogs: (limit?: number) =>
-    api.get('/health/logs', { params: { limit } }).then(res => res.data),
-};

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, Ticket, Settings, BarChart3, MessageCircle, Activity, Users, BookOpen, Star } from 'lucide-react';
+import { MessageSquare, Ticket, Settings, BarChart3, MessageCircle, Users, BookOpen, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarItem {
@@ -25,7 +25,6 @@ export function OperatorSidebar({ ticketCount = 0, chatCount = 0 }: OperatorSide
     { icon: Star, label: 'Valutazioni', href: '/ratings' },
     { icon: MessageCircle, label: 'Risposte Rapide', href: '/canned-responses' },
     { icon: BookOpen, label: 'Knowledge Base', href: '/knowledge' },
-    { icon: Activity, label: 'System Status', href: '/system-status' },
     { icon: Settings, label: 'Impostazioni', href: '/settings' },
   ];
 
