@@ -18,7 +18,7 @@ interface StringsByCategory {
   [category: string]: WidgetString[];
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const CATEGORIES = {
   ai: {
@@ -107,7 +107,7 @@ export function WidgetStringsSection() {
       setError(null);
 
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${BACKEND_URL}/api/settings/widget-strings`, {
+      const response = await axios.get(`${API_URL}/settings/widget-strings`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -156,7 +156,7 @@ export function WidgetStringsSection() {
       });
 
       await axios.put(
-        `${BACKEND_URL}/api/settings/widget-strings`,
+        `${API_URL}/settings/widget-strings`,
         { strings: stringsObject },
         {
           headers: {
@@ -190,7 +190,7 @@ export function WidgetStringsSection() {
 
       const token = localStorage.getItem('token');
       await axios.post(
-        `${BACKEND_URL}/api/settings/widget-strings/reset`,
+        `${API_URL}/settings/widget-strings/reset`,
         {},
         {
           headers: {
