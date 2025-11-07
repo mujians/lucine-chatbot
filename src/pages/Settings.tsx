@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SettingsSection } from '@/components/settings/SettingsSection';
+import { WidgetStringsSection } from '@/components/settings/WidgetStringsSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { settingsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -357,6 +358,7 @@ export default function Settings() {
             <TabsTrigger value="generale">Generale</TabsTrigger>
             <TabsTrigger value="integrazioni">Integrazioni</TabsTrigger>
             <TabsTrigger value="widget">Widget</TabsTrigger>
+            <TabsTrigger value="stringhe">Stringhe</TabsTrigger>
           </TabsList>
 
           <TabsContent value="generale" className="space-y-6">
@@ -814,6 +816,10 @@ export default function Settings() {
             },
           ]}
         />
+          </TabsContent>
+
+          <TabsContent value="stringhe" className="space-y-6">
+            <WidgetStringsSection />
           </TabsContent>
         </Tabs>
       </div>
