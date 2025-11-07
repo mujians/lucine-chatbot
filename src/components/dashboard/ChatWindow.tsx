@@ -27,6 +27,7 @@ import { useSocket } from '@/contexts/SocketContext';
 import { QuickReplyPicker } from './QuickReplyPicker';
 import { InternalNotesSidebar } from './InternalNotesSidebar';
 import { UserHistoryDialog } from './UserHistoryDialog';
+import { MediaDialog } from './MediaDialog';
 import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
 interface ChatWindowProps {
@@ -69,6 +70,7 @@ export function ChatWindow({
   const [showUserHistory, setShowUserHistory] = useState(false); // User History dialog
   const [loadingHistory, setLoadingHistory] = useState(false); // Loading state
   const [showConvertModal, setShowConvertModal] = useState(false); // Convert to Ticket modal
+  const [showMedia, setShowMedia] = useState(false); // Media dialog
   const [convertFormData, setConvertFormData] = useState({
     contactMethod: 'WHATSAPP' as 'WHATSAPP' | 'EMAIL',
     whatsappNumber: '',
@@ -631,6 +633,17 @@ export function ChatWindow({
             </Button>
           )}
 
+          {/* Media Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMedia(true)}
+            title="Media e allegati"
+          >
+            <Paperclip className="h-4 w-4 mr-2" />
+            Media
+          </Button>
+
           <Button variant="ghost" size="icon" onClick={onCloseChat}>
             <X className="h-5 w-5" />
           </Button>
@@ -876,6 +889,13 @@ export function ChatWindow({
         currentSessionId={selectedChat.id}
         open={showUserHistory}
         onClose={() => setShowUserHistory(false)}
+      />
+
+      {/* Media Dialog */}
+      <MediaDialog
+        open={showMedia}
+        onOpenChange={setShowMedia}
+        messages={selectedChat.messages || []}
       />
 
       {/* Convert to Ticket Modal */}
