@@ -220,6 +220,23 @@ export default function Index() {
       };
       updateChatMessages(data.sessionId, systemMessage);
       loadChats();
+
+      // v2.3.9: Add browser notification for operator
+      const chat = chats.find(c => c.id === data.sessionId);
+      notificationService.notifyNewMessage(
+        data.sessionId,
+        chat?.userName || 'Utente',
+        'Ha terminato la conversazione'
+      );
+
+      // v2.3.9: Add in-app notification
+      addNotification({
+        type: 'other',
+        title: 'Conversazione terminata',
+        message: `${chat?.userName || 'Utente'} ha chiuso la chat`,
+        sessionId: data.sessionId,
+        userName: chat?.userName,
+      });
     });
 
     socket.on('chat_assigned', (data) => {
