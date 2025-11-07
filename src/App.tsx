@@ -31,43 +31,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { operator, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Caricamento...</p>
-      </div>
-    );
-  }
-
-  if (!operator) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (operator.role !== 'ADMIN') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center p-8 bg-card rounded-lg shadow-lg max-w-md">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Accesso Negato</h1>
-          <p className="text-muted-foreground mb-6">
-            Questa pagina è accessibile solo agli amministratori.
-          </p>
-          <button
-            onClick={() => window.history.back()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Torna Indietro
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
-
 function AppRoutes() {
   const { operator } = useAuth();
 
