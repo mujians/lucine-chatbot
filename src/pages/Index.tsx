@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import type { Notification } from '@/components/dashboard/NotificationCenter';
 import { ChatListPanel } from '@/components/dashboard/ChatListPanel';
@@ -20,6 +21,7 @@ import { notificationService } from '@/services/notification.service';
 import { exportChatsToCSV, exportChatsToJSON } from '@/lib/export';
 
 export default function Index() {
+  const navigate = useNavigate(); // v2.3.9: For ticket navigation
   const [chats, setChats] = useState<ChatSession[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,12 @@ export default function Index() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
+    // v2.3.9: Handle ticket notifications
+    if (notification.ticketId) {
+      navigate(`/tickets/${notification.ticketId}`);
+      return;
+    }
+
     if (notification.sessionId) {
       // Find chat in current list
       const chat = chats.find(c => c.id === notification.sessionId);
@@ -239,32 +247,19 @@ export default function Index() {
       }
     });
 
-    socket.on('message_received', (data) => {
-      console.log('📨 Message received:', data);
-      updateChatMessages(data.sessionId, data.message);
-    });
+    // v2.3.9: Removed duplicate listener - user_message already handles this
+    // socket.on('message_received', (data) => {
+    //   console.log('📨 Message received:', data);
+    //   updateChatMessages(data.sessionId, data.message);
+    // });
 
     socket.on('chat_waiting_operator', (data) => {
       console.log('⏳ Chat waiting for operator:', data);
       loadChats();
 
-      // Notify all operators about pending request
-      notificationService.notifyNewChat(
-        data.sessionId,
-        data.userName || 'Utente sconosciuto'
-      );
-
-      // v2.3.5: Add in-app notification
-      addNotification({
-        type: 'new_chat',
-        title: 'Chat in attesa',
-        message: `${data.userName || 'Utente sconosciuto'} è in attesa di un operatore`,
-        sessionId: data.sessionId,
-        userName: data.userName,
-      });
-
-      setUnreadCount(prev => prev + 1);
-      notificationService.updateBadgeCount(unreadCount + 1);
+      // v2.3.9: Removed duplicate notification - already handled by new_chat_request
+      // The new_chat_request event is sent to each available operator individually
+      // This event is just for updating the chat list status
     });
 
     socket.on('chat_accepted', (data) => {
@@ -371,12 +366,21 @@ export default function Index() {
     socket.on('new_ticket_created', (data) => {
       console.log('🎫 New ticket created:', data);
 
-      // Show notification
+      // Show browser notification
       notificationService.notifyNewMessage(
         data.ticketId,
         data.userName || 'Utente',
         `Nuovo ticket da ${data.userName || 'Utente'}`
       );
+
+      // v2.3.9: Add in-app notification
+      addNotification({
+        type: 'new_ticket',
+        title: 'Nuovo ticket creato',
+        message: data.subject || `Ticket da ${data.userName || 'Utente'}`,
+        ticketId: data.ticketId,
+        userName: data.userName,
+      });
     });
 
     // ISSUE #12: Operator timeout notification
@@ -554,7 +558,7 @@ export default function Index() {
       socket.off('chat_closed');
       socket.off('conversation_ended');
       socket.off('chat_assigned');
-      socket.off('message_received');
+      // socket.off('message_received'); // v2.3.9: Removed
       socket.off('chat_waiting_operator');
       socket.off('chat_accepted');
       socket.off('chat_request_cancelled');
@@ -1294,6 +1298,7 @@ export default function Index() {
           selectedChat={selectedChat}
           onSendMessage={handleSendMessage}
           onCloseChat={handleCloseChat}
+          onAcceptChat={handleAcceptChat}
           onTransferComplete={() => {
             loadChats();
             setSelectedChat(null);

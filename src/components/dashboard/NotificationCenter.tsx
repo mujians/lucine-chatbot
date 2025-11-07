@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, MessageSquare, UserPlus, AlertCircle } from 'lucide-react';
+import { Bell, MessageSquare, UserPlus, AlertCircle, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,10 +12,11 @@ import { cn } from '@/lib/utils';
 
 export interface Notification {
   id: string;
-  type: 'new_chat' | 'new_message' | 'chat_assigned' | 'other';
+  type: 'new_chat' | 'new_message' | 'chat_assigned' | 'new_ticket' | 'other';
   title: string;
   message: string;
   sessionId?: string;
+  ticketId?: string; // v2.3.9: For ticket notifications
   userName?: string;
   timestamp: Date;
   read: boolean;
@@ -44,6 +45,8 @@ export function NotificationCenter({
         return <UserPlus className="h-4 w-4" />;
       case 'new_message':
         return <MessageSquare className="h-4 w-4" />;
+      case 'new_ticket':
+        return <Ticket className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
     }
@@ -121,6 +124,7 @@ export function NotificationCenter({
                   notification.type === 'new_chat' && "bg-green-500/10 text-green-500",
                   notification.type === 'new_message' && "bg-blue-500/10 text-blue-500",
                   notification.type === 'chat_assigned' && "bg-purple-500/10 text-purple-500",
+                  notification.type === 'new_ticket' && "bg-orange-500/10 text-orange-500",
                   notification.type === 'other' && "bg-gray-500/10 text-gray-500"
                 )}>
                   {getIcon(notification.type)}

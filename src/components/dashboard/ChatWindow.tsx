@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History, Ticket } from 'lucide-react';
+import { Send, X, Archive, Flag, XCircle, Download, StickyNote, Paperclip, History, Ticket, UserCheck } from 'lucide-react';
 import type { ChatSession, ChatMessage, Operator, InternalNote, UserHistory } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ interface ChatWindowProps {
   selectedChat?: ChatSession | null;
   onSendMessage?: (message: string) => void;
   onCloseChat?: () => void;
+  onAcceptChat?: (chat: ChatSession) => void; // v2.3.9: Accept pending chat
   onTransferComplete?: () => void;
   onArchiveChat?: (chatId: string) => void;
   onFlagChat?: (chatId: string, reason: string) => void;
@@ -43,6 +44,7 @@ export function ChatWindow({
   selectedChat,
   onSendMessage,
   onCloseChat,
+  onAcceptChat,
   onTransferComplete,
   onArchiveChat,
   onFlagChat,
@@ -505,6 +507,19 @@ export function ChatWindow({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* v2.3.9: Accept button for WAITING chats */}
+          {selectedChat.status === 'WAITING' && onAcceptChat && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onAcceptChat(selectedChat)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <UserCheck className="h-4 w-4 mr-2" />
+              Accetta Chat
+            </Button>
+          )}
+
           {/* Export dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
