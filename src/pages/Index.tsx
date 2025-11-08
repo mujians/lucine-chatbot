@@ -186,13 +186,10 @@ export default function Index() {
     });
 
     socket.on('operator_message', (data) => {
-      console.log('👤 Operator message (echo):', data);
-      // Filter out own messages to prevent duplicates (already added via optimistic UI)
-      if (data.message && data.message.operatorId !== operator?.id) {
-        // Only add messages from OTHER operators (e.g., transferred chats)
+      console.log('👤 Operator message:', data);
+      // updateChatMessages now prevents duplicates by checking message ID
+      if (data.message) {
         updateChatMessages(data.sessionId, data.message);
-      } else {
-        console.log('⏭️  Skipping own operator message (already in UI via optimistic update)');
       }
     });
 
@@ -477,16 +474,7 @@ export default function Index() {
         setSelectedChat(prev => prev ? { ...prev, userName: data.userName } : null);
       }
 
-      // v2.3.12: Add operator greeting message to chat (if provided)
-      if (data.message) {
-        updateChatMessages(data.sessionId, {
-          id: data.message.id,
-          type: data.message.type || 'operator',
-          content: data.message.content,
-          timestamp: data.message.createdAt || data.message.timestamp || new Date().toISOString(),
-          operatorName: data.message.operatorName,
-        });
-      }
+      // Note: The greeting message is sent separately via operator_message event
     });
 
     // v2.3.5: ISSUE #10 - User returned to AI
@@ -617,16 +605,23 @@ export default function Index() {
   const updateChatMessages = (sessionId: string, newMessage: any) => {
     setChats(prev => {
       // Find and update the chat with new message
-      const updatedChats = prev.map(chat =>
-        chat.id === sessionId
-          ? {
-              ...chat,
-              messages: [...(chat.messages || []), newMessage],
-              lastMessage: newMessage,
-              lastMessageAt: newMessage.timestamp,
-            }
-          : chat
-      );
+      const updatedChats = prev.map(chat => {
+        if (chat.id !== sessionId) return chat;
+
+        // Check if message already exists (prevent duplicates)
+        const messageExists = (chat.messages || []).some(msg => msg.id === newMessage.id);
+        if (messageExists) {
+          console.log('⏭️  Message already exists, skipping:', newMessage.id);
+          return chat;
+        }
+
+        return {
+          ...chat,
+          messages: [...(chat.messages || []), newMessage],
+          lastMessage: newMessage,
+          lastMessageAt: newMessage.timestamp,
+        };
+      });
 
       // Re-sort chats by lastMessageAt (most recent first)
       return updatedChats.sort((a, b) => {
@@ -638,10 +633,20 @@ export default function Index() {
 
     // Update selected chat if it's the one receiving the message
     if (selectedChat?.id === sessionId) {
-      setSelectedChat(prev => prev ? {
-        ...prev,
-        messages: [...(prev.messages || []), newMessage],
-      } : null);
+      setSelectedChat(prev => {
+        if (!prev) return null;
+
+        // Check if message already exists
+        const messageExists = (prev.messages || []).some(msg => msg.id === newMessage.id);
+        if (messageExists) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          messages: [...(prev.messages || []), newMessage],
+        };
+      });
     }
   };
 
