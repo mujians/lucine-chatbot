@@ -981,6 +981,7 @@ export default function Index() {
       onNotificationClick={handleNotificationClick}
       onMarkNotificationAsRead={handleMarkNotificationAsRead}
       onClearAllNotifications={handleClearAllNotifications}
+      chatCount={unreadCount}
     >
       <div className="flex flex-1 overflow-hidden">
 

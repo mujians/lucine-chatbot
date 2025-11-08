@@ -10,6 +10,8 @@ interface DashboardLayoutProps {
   onNotificationClick?: (notification: Notification) => void;
   onMarkNotificationAsRead?: (id: string) => void;
   onClearAllNotifications?: () => void;
+  chatCount?: number;
+  ticketCount?: number;
 }
 
 export function DashboardLayout({
@@ -18,6 +20,8 @@ export function DashboardLayout({
   onNotificationClick,
   onMarkNotificationAsRead,
   onClearAllNotifications,
+  chatCount = 0,
+  ticketCount = 0,
 }: DashboardLayoutProps) {
   const { operator, logout } = useAuth();
   const navigate = useNavigate();
@@ -38,7 +42,7 @@ export function DashboardLayout({
         onClearAllNotifications={onClearAllNotifications}
       />
       <div className="flex flex-1 overflow-hidden">
-        <OperatorSidebar />
+        <OperatorSidebar chatCount={chatCount} ticketCount={ticketCount} />
         <main className="flex-1 overflow-auto">
           {children}
         </main>
