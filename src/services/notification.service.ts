@@ -1,7 +1,7 @@
 /**
  * Notification Service
  * Gestisce notifiche browser, badge, e suoni
- * P2.8: Ora rispetta le preferenze dell'operatore (quiet hours, toggles)
+ * P2.8: Ora rispetta le preferenze dell'operatore
  */
 
 import { api } from '@/lib/api';
@@ -28,10 +28,6 @@ interface OperatorPreferences {
     newTicket: boolean;
     chatMessage: boolean;
     ticketResumed: boolean;
-  };
-  quietHours: {
-    start: string; // "22:00"
-    end: string;   // "08:00"
   };
 }
 
@@ -92,8 +88,7 @@ class NotificationService {
         email: { newChat: true, newTicket: true, ticketResumed: true },
         whatsapp: { newChat: false, newTicket: false, ticketResumed: true },
         inApp: { newChat: true, newTicket: true, chatMessage: true, ticketResumed: true },
-        audio: { newChat: true, newTicket: true, chatMessage: false, ticketResumed: true },
-        quietHours: { start: '22:00', end: '08:00' }
+        audio: { newChat: true, newTicket: true, chatMessage: false, ticketResumed: true }
       };
 
       this.preferences = typeof prefs === 'string'
@@ -107,30 +102,10 @@ class NotificationService {
   }
 
   /**
-   * P2.8: Verifica se siamo in orari di silenzio
-   */
-  private isInQuietHours(): boolean {
-    if (!this.preferences) return false;
-
-    const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    const { start, end } = this.preferences.quietHours;
-
-    // Handle quiet hours that cross midnight (e.g., 22:00 to 08:00)
-    if (start > end) {
-      return currentTime >= start || currentTime < end;
-    } else {
-      return currentTime >= start && currentTime < end;
-    }
-  }
-
-  /**
    * P2.8: Verifica se riprodurre audio per un evento
    */
   private shouldPlayAudio(eventType: 'newChat' | 'newTicket' | 'chatMessage' | 'ticketResumed'): boolean {
     if (!this.preferences) return true; // Default: play sound
-    if (this.isInQuietHours()) return false; // No audio during quiet hours
     return this.preferences.audio[eventType];
   }
 
@@ -139,7 +114,6 @@ class NotificationService {
    */
   private shouldShowNotification(eventType: 'newChat' | 'newTicket' | 'chatMessage' | 'ticketResumed'): boolean {
     if (!this.preferences) return true; // Default: show notification
-    if (this.isInQuietHours()) return false; // No notifications during quiet hours
     return this.preferences.inApp[eventType];
   }
 
